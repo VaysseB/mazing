@@ -17,21 +17,17 @@ pub mod maze;
 pub mod maze_render;
 
 fn main() {
-    // Change this to OpenGL::V2_1 if not working.
     let opengl = OpenGL::V3_2;
 
-    // Create an Glutin window.
-    let mut window: Window = WindowSettings::new(
-            "mazing",
-            [200, 200]
-        )
+    let win_size = [200, 200];
+    let win_settings = WindowSettings::new("mazing", win_size)
         .opengl(opengl)
         .srgb(false)
-        .exit_on_esc(true)
-        .build()
-        .unwrap();
+        .exit_on_esc(true);
 
-    // Create a new game and run it.
+    let mut window: Window = win_settings.build()
+        .expect("fail to build window");
+
     let mut app = app::App::new(GlGraphics::new(opengl));
 
     let mut events = Events::new(EventSettings::new());

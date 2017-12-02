@@ -15,7 +15,7 @@ pub struct App {
 
 impl App {
     pub fn new(gl: GlGraphics) -> App {
-        App { gl, maze: Maze::new(4, 4) }
+        App { gl, maze: Maze::new(6, 4) }
     }
 
     pub fn render(&mut self, args: &RenderArgs) {
