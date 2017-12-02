@@ -9,6 +9,13 @@ bitflags! {
 }
 
 
+impl Default for GateWay {
+    fn default() -> GateWay {
+        GateWay{ bits: 3 }
+    }
+}
+
+
 pub struct Maze {
     columns: usize,
     lines: usize,
@@ -20,8 +27,8 @@ impl Maze {
     pub fn new(columns: usize, lines: usize) -> Maze {
         let count = (columns * lines) as usize;
         let mut gates = Vec::with_capacity(count);
-        for _ in 0..(count) {
-            gates.push(GateWay{ bits: 3 });
+        for _ in 0..count {
+            gates.push(GateWay::default());
         }
         Maze {columns, lines, gates}
     }

@@ -16,6 +16,7 @@ pub mod app;
 pub mod maze;
 pub mod maze_render;
 
+
 fn main() {
     let opengl = OpenGL::V3_2;
 

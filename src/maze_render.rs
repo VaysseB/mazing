@@ -15,8 +15,8 @@ pub struct StaticMazeRenderer {
 impl StaticMazeRenderer {
     pub fn new() -> StaticMazeRenderer {
         StaticMazeRenderer {
-            cell_size: 24.0,
-            line_thickness: 1.0
+            cell_size: 20.0,
+            line_thickness: 0.5
         }
     }
 
