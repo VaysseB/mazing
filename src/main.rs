@@ -5,7 +5,7 @@ extern crate opengl_graphics;
 
 use piston::window::WindowSettings;
 use piston::event_loop::{Events, EventSettings};
-use piston::input::{RenderEvent, UpdateEvent};
+use piston::input::{RenderEvent, UpdateEvent, PressEvent};
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ GlGraphics, OpenGL };
 
@@ -37,6 +37,10 @@ fn main() {
 
         if let Some(u) = e.update_args() {
             app.update(&u);
+        }
+
+        if let Some(b) = e.press_args() {
+            app.button_pressed(&b);
         }
     }
 }

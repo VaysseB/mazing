@@ -2,42 +2,63 @@ extern crate piston;
 extern crate graphics;
 extern crate opengl_graphics;
 
-use piston::input::{RenderArgs, UpdateArgs};
+use piston::input::{RenderArgs, UpdateArgs, Button, Key};
 use opengl_graphics::{ GlGraphics };
 
 pub struct App {
-    gl: GlGraphics, // OpenGL drawing backend.
-    rotation: f64   // Rotation for the square.
+    gl: GlGraphics,
+    pos: [i32; 2]
 }
 
 impl App {
     pub fn new(gl: GlGraphics) -> App {
-        App { gl, rotation: 0.0 }
+        App { gl, pos: [0, 0] }
     }
 
 
     pub fn render(&mut self, args: &RenderArgs) {
         use graphics::*;
 
-        let square = rectangle::square(0.0, 0.0, 50.0);
-        let rotation = self.rotation;
-        let (x, y) = ((args.width / 2) as f64,
-                      (args.height / 2) as f64);
+        const ML : f64 = 4.0;
+
+        let square = rectangle::square(0.0, 0.0, ML * 2f64);
+        let (x, y) = (
+            (args.width / 2) as f64,
+            (args.height / 2) as f64);
+        let (dx, dy) = (
+            ML * self.pos[0] as f64,
+            ML * self.pos[1] as f64);
 
         self.gl.draw(args.viewport(), |c, gl| {
             clear(color::WHITE, gl);
 
-            let transform = c.transform.trans(x, y)
-                                       .rot_rad(rotation)
-                                       .trans(-25.0, -25.0);
+            let transform = c.transform
+                .trans(x, y)
+                .trans(-ML, -ML)
+                .trans(dx, dy);
 
-            // Draw a box rotating around the middle of the screen.
             rectangle(color::BLACK, square, transform, gl);
         });
     }
 
-    pub fn update(&mut self, args: &UpdateArgs) {
-        // Rotate 2 radians per second.
-        self.rotation += 2.0 * args.dt;
+    pub fn update(&mut self, _args: &UpdateArgs) {
+    }
+
+    pub fn button_pressed(&mut self, args: &Button) {
+        match *args {
+            Button::Keyboard(key) if key == Key::Left => {
+                self.pos[0] -= 1;
+            },
+            Button::Keyboard(key) if key == Key::Right => {
+                self.pos[0] += 1;
+            },
+            Button::Keyboard(key) if key == Key::Up => {
+                self.pos[1] -= 1;
+            },
+            Button::Keyboard(key) if key == Key::Down => {
+                self.pos[1] += 1;
+            },
+            _ => ()
+        }
     }
 }
