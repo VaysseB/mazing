@@ -5,39 +5,34 @@ extern crate opengl_graphics;
 use piston::input::{RenderArgs, UpdateArgs, Button, Key};
 use opengl_graphics::{ GlGraphics };
 
+use super::maze::Maze;
+use super::maze_render::{MazeRenderer, StaticMazeRenderer};
+
 pub struct App {
     gl: GlGraphics,
-    pos: [i32; 2]
+    maze: Maze
 }
 
 impl App {
     pub fn new(gl: GlGraphics) -> App {
-        App { gl, pos: [0, 0] }
+        App { gl, maze: Maze::new(4, 4) }
     }
-
 
     pub fn render(&mut self, args: &RenderArgs) {
         use graphics::*;
 
-        const ML : f64 = 4.0;
+        let cx = args.width as f64 * 0.5;
+        let cy = args.height as f64 * 0.5;
 
-        let square = rectangle::square(0.0, 0.0, ML * 2f64);
-        let (x, y) = (
-            (args.width / 2) as f64,
-            (args.height / 2) as f64);
-        let (dx, dy) = (
-            ML * self.pos[0] as f64,
-            ML * self.pos[1] as f64);
+        let mut mr = StaticMazeRenderer::new();
+        let maze = &self.maze;
 
-        self.gl.draw(args.viewport(), |c, gl| {
+        self.gl.draw(args.viewport(), |mut c, gl| {
             clear(color::WHITE, gl);
 
-            let transform = c.transform
-                .trans(x, y)
-                .trans(-ML, -ML)
-                .trans(dx, dy);
+            c.transform = c.transform.trans(cx, cy);
 
-            rectangle(color::BLACK, square, transform, gl);
+            mr.render(maze, &c, gl);
         });
     }
 
@@ -45,20 +40,14 @@ impl App {
     }
 
     pub fn button_pressed(&mut self, args: &Button) {
-        match *args {
-            Button::Keyboard(key) if key == Key::Left => {
-                self.pos[0] -= 1;
-            },
-            Button::Keyboard(key) if key == Key::Right => {
-                self.pos[0] += 1;
-            },
-            Button::Keyboard(key) if key == Key::Up => {
-                self.pos[1] -= 1;
-            },
-            Button::Keyboard(key) if key == Key::Down => {
-                self.pos[1] += 1;
-            },
-            _ => ()
-        }
+        //match *args {
+            //Button::Keyboard(key) if key == Key::Up => {
+                //self.pos[1] -= 1;
+            //},
+            //Button::Keyboard(key) if key == Key::Down => {
+                //self.pos[1] += 1;
+            //},
+            //_ => ()
+        //}
     }
 }

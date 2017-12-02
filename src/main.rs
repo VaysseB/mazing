@@ -9,7 +9,12 @@ use piston::input::{RenderEvent, UpdateEvent, PressEvent};
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ GlGraphics, OpenGL };
 
-mod app;
+#[macro_use]
+extern crate bitflags;
+
+pub mod app;
+pub mod maze;
+pub mod maze_render;
 
 fn main() {
     // Change this to OpenGL::V2_1 if not working.
