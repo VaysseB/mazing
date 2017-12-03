@@ -8,11 +8,13 @@ use opengl_graphics::{ GlGraphics };
 use super::maze::Maze;
 use super::maze_render::{MazeRenderer, StaticMazeRenderer};
 use super::carving;
+use super::carving::CarveStatus;
 
 
 pub struct Execution {
     algo: carving::BinaryTree,
     active: bool,
+    last_status: Option<CarveStatus>,
     idle_time: f64 // second
 }
 
@@ -36,17 +38,18 @@ impl App {
     }
 
     fn set_algo(&mut self) {
-        println!("Set algorithm");
+        println!("[app] Set algorithm");
 
         self.exec = Some(Execution {
             algo: carving::BinaryTree::new(),
             active: false,
+            last_status: None,
             idle_time: 0.0
         });
     }
 
     fn reset_maze(&mut self) {
-        println!("Reset maze");
+        println!("[app] Reset maze");
         self.exec = None;
 
         let (w, h) = (self.maze.columns(), self.maze.lines());
@@ -73,11 +76,16 @@ impl App {
 
     pub fn update(&mut self, args: &UpdateArgs) {
         if let Some(ref mut exec) = self.exec {
-            if exec.active {
+            let can_continue = exec.active
+                && (exec.last_status == None
+                    || exec.last_status == Some(CarveStatus::Continuing));
+
+            if can_continue {
                 exec.idle_time += args.dt;
 
                 if exec.idle_time >= self.idle_period {
-                    exec.algo.carve_one(&mut self.maze);
+                    let status = exec.algo.carve_one(&mut self.maze);
+                    exec.last_status = Some(status);
                     exec.idle_time = exec.idle_time % self.idle_period;
                 }
             }
@@ -91,10 +99,10 @@ impl App {
                     exec.active = !exec.active;
 
                     if exec.active {
-                        println!("Resume algo");
+                        println!("[app] Resume algo");
                         exec.idle_time = self.idle_period * 0.5;
                     } else {
-                        println!("Pause execution");
+                        println!("[app] Pause execution");
                         exec.idle_time = 0.0;
                     }
                 }

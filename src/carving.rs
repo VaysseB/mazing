@@ -2,6 +2,12 @@ extern crate rand;
 
 use super::maze::Maze;
 
+#[derive(Debug, PartialEq)]
+pub enum CarveStatus {
+    Done,
+    Continuing
+}
+
 
 pub struct BinaryTree {
     x: usize,
@@ -46,26 +52,34 @@ impl BinaryTree {
         }
     }
 
-    pub fn carve_one(&mut self, maze: &mut Maze) {
-        println!("Carve one!");
-
+    pub fn carve_one(&mut self, maze: &mut Maze) -> CarveStatus {
         if self.is_done(maze) {
-            return;
+            println!("[BinaryTree] Done");
+            return CarveStatus::Done;
         } else if self.is_last_row(maze) {
+            println!("[BinaryTree] Forced carve right at {}:{}",
+                     self.x, self.y);
             self.carve_right(maze);
         } else if self.is_last_column(maze) {
+            println!("[BinaryTree] Forced carve down at {}:{}",
+                     self.x, self.y);
             self.carve_down(maze);
         } else {
             use carving::rand::Rng;
 
             let vert = rand::thread_rng().next_f32() < 0.5;
             if vert {
+                println!("[BinaryTree] Randomly carve down at {}:{}",
+                         self.x, self.y);
                 self.carve_down(maze);
             } else {
+                println!("[BinaryTree] Randomly carve right at {}:{}",
+                         self.x, self.y);
                 self.carve_right(maze);
             }
         }
 
         self.next(maze);
+        CarveStatus::Continuing
     }
 }
