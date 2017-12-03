@@ -66,6 +66,14 @@ impl Walker {
         maze.unmark_active(self.x, self.y)
     }
 
+    fn mark_current(&self, maze: &mut Maze) {
+        maze.mark_current(self.x, self.y)
+    }
+
+    fn unmark_current(&self, maze: &mut Maze) {
+        maze.unmark_current(self.x, self.y)
+    }
+
     fn is_on_right_border(&self, maze: &Maze) -> bool {
         self.x + 1 == maze.columns()
     }
@@ -79,7 +87,7 @@ impl Walker {
     }
 
     fn walk_right_then_down(&mut self, maze: &mut Maze) {
-        self.unmark_active(maze);
+        self.unmark_current(maze);
 
         self.x += 1;
 
@@ -89,12 +97,12 @@ impl Walker {
         }
         
         if !self.is_done_walking_right_then_down(maze) {
-            self.mark_active(maze);
+            self.mark_current(maze);
         }
     }
     
     fn is_done_walking_right_then_down(&self, maze: &Maze) -> bool {
-        self.y == maze.lines() - 1 && self.x == maze.columns() - 1
+        self.y >= maze.lines() || self.x >= maze.columns()
     }
 }
 
@@ -198,16 +206,29 @@ impl SideWinder {
     
     fn close_group(&mut self, maze: &mut Maze) {
         use carving::rand::Rng;
+
+        for x in self.start_x..self.pos.x() {
+            let pos = self.pos.move_x(x);
+            pos.unmark_active(maze);
+        }
         
         let door = rand::thread_rng().gen_range(
             self.start_x, self.pos.x() + 1);
 
         let pos = self.pos.move_x(door);
-        pos.carve_down(maze);
         
         self.log.info(self, &format!(
                 "Close group, carve down at {}",
                 Logger::format_pos(&pos)));
+        
+        pos.carve_down(maze);
+    }
+    
+    fn continue_group(&mut self, maze: &mut Maze) {
+        self.pos.mark_active(maze);
+        
+        self.log.info(self, "Continue group, carve right");
+        self.pos.carve_right(maze);
     }
 }
 
@@ -221,24 +242,21 @@ impl Algo for SideWinder {
         let mut update_start = false;
 
         if self.pos.is_done_walking_right_then_down(maze) {
-            self.log.info(self, "Done");
             return CarveStatus::Done;
-        } 
-        else if self.pos.is_on_down_border(maze) {
-            self.log.info(self, "Forced carve right");
-            self.pos.carve_right(maze);
         } 
         else if self.pos.is_on_right_border(maze) {
             self.close_group(maze);
             update_start = true;
+        } 
+        else if self.pos.is_on_down_border(maze) {
+            self.continue_group(maze);
         } 
         else {
             use carving::rand::Rng;
 
             let build_group = rand::thread_rng().next_f32() < 0.5;
             if build_group {
-                self.log.info(self, "Randomly continue group, carve right");
-                self.pos.carve_right(maze);
+                self.continue_group(maze);
             } else {
                 self.close_group(maze);
                 update_start = true;
@@ -251,6 +269,11 @@ impl Algo for SideWinder {
             self.start_x = self.pos.x();
         }
 
-        CarveStatus::Continuing
+        if self.pos.is_done_walking_right_then_down(maze) {
+            self.log.info(self, "Done");
+            CarveStatus::Done
+        } else {
+            CarveStatus::Continuing
+        }
     }
 }

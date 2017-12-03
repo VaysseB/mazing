@@ -69,7 +69,12 @@ impl StaticMazeRenderer {
         (-origin_x, -origin_y, width, height)
     }
 
-    fn draw_partial_frame_centered(&mut self, maze: &Maze, context: &Context, gl: &mut GlGraphics) {
+    fn draw_partial_frame_centered(
+        &mut self, 
+        maze: &Maze, 
+        context: &Context, 
+        gl: &mut GlGraphics) 
+    {
         let (origin_x, origin_y, width, height) = self.frame_box(maze);
         let hlt = self.line_thickness * 0.5;
 
@@ -90,7 +95,12 @@ impl StaticMazeRenderer {
         ], context.transform, gl);
     }
     
-    fn draw_cells_centered(&mut self, maze: &Maze, context: &Context, gl: &mut GlGraphics) {
+    fn draw_gates_centered(
+        &mut self, 
+        maze: &Maze, 
+        context: &Context, 
+        gl: &mut GlGraphics) 
+    {
         let (origin_x, origin_y, _, _) = self.frame_box(maze);
         
         let hlt = self.line_thickness * 0.5;
@@ -120,13 +130,33 @@ impl StaticMazeRenderer {
                      corner_y + space + hlt
                 ], context.transform, gl);
             }
-            
+        }
+    }
+    
+    fn draw_cells_centered(
+        &mut self, 
+        maze: &Maze, 
+        context: &Context, 
+        gl: &mut GlGraphics) 
+    {
+        let (origin_x, origin_y, _, _) = self.frame_box(maze);
+        
+        let hlt = self.line_thickness * 0.5;
+        let space = self.line_thickness + self.cell_size;
+
+        for cell in maze.iter() {
+            let x = cell.column;
+            let y = cell.line;
+
+            let corner_x = origin_x + x as f64 * space;
+            let corner_y = origin_y + y as f64 * space;
+
             if let Some(color) = cell.to_color() {
                 rectangle(color, [
-                          corner_x + hlt,
-                          corner_y + hlt,
-                          self.cell_size,
-                          self.cell_size
+                          corner_x - hlt,
+                          corner_y - hlt,
+                          space + self.line_thickness,
+                          space + self.line_thickness
                 ], context.transform, gl);
             }
         }
@@ -136,7 +166,8 @@ impl StaticMazeRenderer {
 
 impl MazeRenderer for StaticMazeRenderer {
     fn render(&mut self, maze: &Maze, context: &Context, gl: &mut GlGraphics) {
-        self.draw_partial_frame_centered(maze, context, gl);
         self.draw_cells_centered(maze, context, gl);
+        self.draw_gates_centered(maze, context, gl);
+        self.draw_partial_frame_centered(maze, context, gl);
     }
 }

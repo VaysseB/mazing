@@ -108,6 +108,16 @@ impl Maze {
             .map(|cell| cell.remove(CellStatus::ACTIVE));
     }
  
+    pub fn mark_current(&mut self, x: usize, y: usize) {
+        self._status_at_mut(x, y)
+            .map(|cell| cell.insert(CellStatus::CURRENT));
+    }
+ 
+    pub fn unmark_current(&mut self, x: usize, y: usize) {
+        self._status_at_mut(x, y)
+            .map(|cell| cell.remove(CellStatus::CURRENT));
+    }
+ 
     fn continuity(
         &self,
         start_x: usize,
