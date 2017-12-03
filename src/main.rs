@@ -21,7 +21,7 @@ pub mod carving;
 fn main() {
     let opengl = OpenGL::V3_2;
 
-    let win_size = [200, 200];
+    let win_size = [500, 450];
     let win_settings = WindowSettings::new("mazing", win_size)
         .opengl(opengl)
         .srgb(false)

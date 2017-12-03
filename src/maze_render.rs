@@ -1,94 +1,138 @@
-use graphics::{color, Context, line};
+use graphics::{color, Context, line, rectangle};
+use graphics::types::Color;
 use opengl_graphics::{GlGraphics};
 
-use super::maze::Maze;
+use super::maze::{Maze, CellInfo};
 
 pub trait MazeRenderer {
     fn render(&mut self, maze: &Maze, context: &Context, gl: &mut GlGraphics);
 }
 
+
+trait CellColorisation {
+    fn to_color(&self) -> Option<Color>;
+}
+
+
+impl<'a> CellColorisation for CellInfo<'a> {
+    fn to_color(&self) -> Option<Color> {
+        if self.is_current() {
+            Some(color::hex("FF5733"))
+        } else if self.is_active() {
+            Some(color::hex("FFDB33"))
+        } else {
+            None
+        }
+    }
+}
+
+
 pub struct StaticMazeRenderer {
     cell_size: f64,
-    line_thickness: f64
+    line_thickness: f64,
+    hori_line: Color,
+    vert_line: Color
 }
+
+
+const DEBUG_MODE : bool = false;
+
 
 impl StaticMazeRenderer {
     pub fn new() -> StaticMazeRenderer {
-        StaticMazeRenderer {
-            cell_size: 20.0,
-            line_thickness: 1.0
+        if DEBUG_MODE {
+            StaticMazeRenderer {
+                cell_size: 70.0,
+                line_thickness: 8.0,
+                hori_line: color::hex("FF0000A0"),
+                vert_line: color::hex("00FF00A0")
+            }
+        } else {
+            StaticMazeRenderer {
+                cell_size: 70.0,
+                line_thickness: 8.0,
+                hori_line: color::BLACK,
+                vert_line: color::BLACK
+            }
         }
     }
 
-    fn dim(&self, maze: &Maze) -> (f64, f64) {
-        let frame_x = maze.columns() as f64 * (self.cell_size + self.line_thickness) + self.line_thickness;
-        let frame_y = maze.lines() as f64 * (self.cell_size + self.line_thickness) + self.line_thickness;
+    fn frame_box(&self, maze: &Maze) -> (f64, f64, f64, f64) {
+        let space = self.cell_size + self.line_thickness;
+        
+        let width = maze.columns() as f64 * space + self.line_thickness;
+        let height = maze.lines() as f64 * space + self.line_thickness;
+        
+        let origin_x = (width - self.line_thickness) * 0.5;
+        let origin_y = (height - self.line_thickness) * 0.5;
 
-        (frame_x, frame_y)
+        (-origin_x, -origin_y, width, height)
     }
 
     fn draw_partial_frame_centered(&mut self, maze: &Maze, context: &Context, gl: &mut GlGraphics) {
-        let (width, height) = self.dim(maze);
+        let (origin_x, origin_y, width, height) = self.frame_box(maze);
+        let hlt = self.line_thickness * 0.5;
 
         // top
-        line(color::BLACK, self.line_thickness, [
-             width * -0.5,
-             height * -0.5,
-             width *  0.5,
-             height * -0.5
+        line(self.hori_line, hlt, [
+             origin_x - hlt,
+             origin_y,
+             origin_x + width - hlt,
+             origin_y
         ], context.transform, gl);
 
         // left
-        line(color::BLACK, self.line_thickness, [
-             width * -0.5,
-             height * -0.5,
-             width * -0.5,
-             height *  0.5
+        line(self.vert_line, hlt, [
+             origin_x,
+             origin_y - hlt,
+             origin_x,
+             origin_y + height - hlt
         ], context.transform, gl);
     }
     
     fn draw_cells_centered(&mut self, maze: &Maze, context: &Context, gl: &mut GlGraphics) {
-        let (width, height) = self.dim(maze);
-        let corner_x = -0.5 * width + self.line_thickness;
-        let corner_y = -0.5 * height + self.line_thickness;
-
+        let (origin_x, origin_y, _, _) = self.frame_box(maze);
+        
+        let hlt = self.line_thickness * 0.5;
         let space = self.line_thickness + self.cell_size;
-        let catchup = space + self.line_thickness;
 
         for cell in maze.iter() {
             let x = cell.column;
             let y = cell.line;
 
-            let move_down = !cell.can_move_down();
-            let move_right = !cell.can_move_right();
+            let corner_x = origin_x + x as f64 * space;
+            let corner_y = origin_y + y as f64 * space;
 
-            if move_down && move_right {
-                continue
-            }
-
-            let opp_corner_x = (x + 1) as f64 * space;
-            let opp_corner_y = (y + 1) as f64 * space;
-
-            if !move_down {
-                line(color::BLACK, self.line_thickness, [
-                     corner_x + opp_corner_x - catchup,
-                     corner_y + opp_corner_y,
-                     corner_x + opp_corner_x,
-                     corner_y + opp_corner_y
+            if !cell.can_move_down() {
+                line(self.hori_line, hlt, [
+                     corner_x - hlt,
+                     corner_y + space,
+                     corner_x + space + hlt,
+                     corner_y + space
                 ], context.transform, gl);
             }
             
-            if !move_right {
-                line(color::BLACK, self.line_thickness, [
-                     corner_x + opp_corner_x,
-                     corner_y + opp_corner_y - catchup,
-                     corner_x + opp_corner_x,
-                     corner_y + opp_corner_y
+            if !cell.can_move_right() {
+                line(self.vert_line, hlt, [
+                     corner_x + space,
+                     corner_y - hlt,
+                     corner_x + space,
+                     corner_y + space + hlt
+                ], context.transform, gl);
+            }
+            
+            if let Some(color) = cell.to_color() {
+                rectangle(color, [
+                          corner_x + hlt,
+                          corner_y + hlt,
+                          self.cell_size,
+                          self.cell_size
                 ], context.transform, gl);
             }
         }
     }
 }
+
 
 impl MazeRenderer for StaticMazeRenderer {
     fn render(&mut self, maze: &Maze, context: &Context, gl: &mut GlGraphics) {

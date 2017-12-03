@@ -58,6 +58,14 @@ impl Walker {
         maze.carve(self.x, self.y, self.x, self.y + 1);
     }
 
+    fn mark_active(&self, maze: &mut Maze) {
+        maze.mark_active(self.x, self.y)
+    }
+
+    fn unmark_active(&self, maze: &mut Maze) {
+        maze.unmark_active(self.x, self.y)
+    }
+
     fn is_on_right_border(&self, maze: &Maze) -> bool {
         self.x + 1 == maze.columns()
     }
@@ -70,12 +78,18 @@ impl Walker {
         Walker { x, y: self.y }
     }
 
-    fn walk_right_then_down(&mut self, maze: &Maze) {
+    fn walk_right_then_down(&mut self, maze: &mut Maze) {
+        self.unmark_active(maze);
+
         self.x += 1;
 
         if self.x >= maze.columns() {
             self.x = 0;
             self.y += 1;
+        }
+        
+        if !self.is_done_walking_right_then_down(maze) {
+            self.mark_active(maze);
         }
     }
     

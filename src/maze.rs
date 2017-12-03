@@ -2,16 +2,18 @@ use std::fmt::{Debug, Formatter, Error};
 
 
 bitflags! {
-    struct GateWay: u32 {
-        const HORI = 0b001;
-        const VERT = 0b010;
+    pub struct CellStatus: u32 {
+        const GATE_HORI = 0b00000001;
+        const GATE_VERT = 0b00000010;
+        const ACTIVE    = 0b00000100;
+        const CURRENT   = 0b00001000;
     }
 }
 
 
-impl Default for GateWay {
-    fn default() -> GateWay {
-        GateWay{ bits: 3 }
+impl CellStatus {
+    fn new() -> CellStatus {
+        CellStatus{ bits: 3 }
     }
 }
 
@@ -19,18 +21,18 @@ impl Default for GateWay {
 pub struct Maze {
     columns: usize,
     lines: usize,
-    gates: Vec<GateWay>
+    cells: Vec<CellStatus>
 }
 
 
 impl Maze {
     pub fn new(columns: usize, lines: usize) -> Maze {
         let count = (columns * lines) as usize;
-        let mut gates = Vec::with_capacity(count);
+        let mut cells = Vec::with_capacity(count);
         for _ in 0..count {
-            gates.push(GateWay::default());
+            cells.push(CellStatus::new());
         }
-        Maze {columns, lines, gates}
+        Maze {columns, lines, cells}
     }
 
     pub fn columns(&self) -> usize {
@@ -54,24 +56,56 @@ impl Maze {
         y * self.columns + x
     }
 
-    pub fn can_move_down(&self, x: usize, y: usize) -> bool {
+    fn _status_at(&self, x: usize, y: usize) -> Option<&CellStatus> {
         if self.is_out(x, y) {
-            false
+            None
         } else {
             let index = self.localize(x, y);
-            let gate = self.gates[index];
-            gate.contains(GateWay::VERT)
+            Some(&self.cells[index])
         }
     }
 
-    pub fn can_move_right(&self, x: usize, y: usize) -> bool {
+    fn _status_at_mut(&mut self, x: usize, y: usize) -> Option<&mut CellStatus> {
         if self.is_out(x, y) {
-            false
+            None
         } else {
             let index = self.localize(x, y);
-            let gate = self.gates[index];
-            gate.contains(GateWay::HORI)
+            Some(&mut self.cells[index])
         }
+    }
+
+    pub fn is_active(&self, x: usize, y: usize) -> bool {
+        self._status_at(x, y)
+            .map(|&cell| cell.contains(CellStatus::ACTIVE))
+            .unwrap_or(false)
+    }
+
+    pub fn is_current(&self, x: usize, y: usize) -> bool {
+        self._status_at(x, y)
+            .map(|&cell| cell.contains(CellStatus::CURRENT))
+            .unwrap_or(false)
+    }
+
+    pub fn can_move_down(&self, x: usize, y: usize) -> bool {
+        self._status_at(x, y)
+            .map(|&cell| !cell.contains(CellStatus::GATE_VERT))
+            .unwrap_or(false)
+    }
+
+    pub fn can_move_right(&self, x: usize, y: usize) -> bool {
+        self._status_at(x, y)
+            .map(|&cell| !cell.contains(CellStatus::GATE_HORI))
+            .unwrap_or(false)
+    }
+
+    pub fn mark_active(&mut self, x: usize, y: usize) {
+        self._status_at_mut(x, y)
+            .map(|cell| cell.insert(CellStatus::ACTIVE));
+    }
+ 
+    pub fn unmark_active(&mut self, x: usize, y: usize) {
+        self._status_at_mut(x, y)
+            .map(|cell| cell.remove(CellStatus::ACTIVE));
     }
  
     fn continuity(
@@ -80,7 +114,7 @@ impl Maze {
         start_y: usize,
         end_x: usize,
         end_y: usize)
-        -> Option<GateWay>
+        -> Option<CellStatus>
     {
         let diff_x = start_x as i32 - end_x as i32;
         let adj_x = diff_x == 1 || diff_x == -1;
@@ -89,9 +123,9 @@ impl Maze {
         let adj_y = diff_y == 1 || diff_y == -1;
 
         if diff_x == 0 && adj_y {
-            Some(GateWay::VERT) 
+            Some(CellStatus::GATE_VERT) 
         } else if diff_y == 0 && adj_x {
-            Some(GateWay::HORI)
+            Some(CellStatus::GATE_HORI)
         } else {
             None
         }
@@ -110,28 +144,28 @@ impl Maze {
         }
 
         match self.continuity(start_x, start_y, end_x, end_y) {
-            Some(GateWay::VERT) if start_y < end_y => {
+            Some(CellStatus::GATE_VERT) if start_y < end_y => {
                 let index = self.localize(start_x, start_y);
-                if let Some(ref mut gate) = self.gates.get_mut(index) {
-                    gate.remove(GateWay::VERT);
+                if let Some(ref mut cell) = self.cells.get_mut(index) {
+                    cell.remove(CellStatus::GATE_VERT);
                 }
             }
-            Some(GateWay::VERT) if end_y < start_y => {
+            Some(CellStatus::GATE_VERT) if end_y < start_y => {
                 let index = self.localize(end_x, end_y);
-                if let Some(ref mut gate) = self.gates.get_mut(index) {
-                    gate.remove(GateWay::VERT);
+                if let Some(ref mut cell) = self.cells.get_mut(index) {
+                    cell.remove(CellStatus::GATE_VERT);
                 }
             }
-            Some(GateWay::HORI) if start_x < end_x => {
+            Some(CellStatus::GATE_HORI) if start_x < end_x => {
                 let index = self.localize(start_x, start_y);
-                if let Some(ref mut gate) = self.gates.get_mut(index) {
-                    gate.remove(GateWay::HORI);
+                if let Some(ref mut cell) = self.cells.get_mut(index) {
+                    cell.remove(CellStatus::GATE_HORI);
                 }
             }
-            Some(GateWay::HORI) if end_x < start_x => {
+            Some(CellStatus::GATE_HORI) if end_x < start_x => {
                 let index = self.localize(end_x, end_y);
-                if let Some(ref mut gate) = self.gates.get_mut(index) {
-                    gate.remove(GateWay::HORI);
+                if let Some(ref mut cell) = self.cells.get_mut(index) {
+                    cell.remove(CellStatus::GATE_HORI);
                 }
             }
             _ => ( println!("Failed to carve") )
@@ -162,6 +196,14 @@ impl<'a> CellInfo<'a> {
     
     pub fn can_move_right(&self) -> bool {
         return self.maze.can_move_right(self.column, self.line)
+    }
+    
+    pub fn is_active(&self) -> bool {
+        return self.maze.is_active(self.column, self.line)
+    }
+    
+    pub fn is_current(&self) -> bool {
+        return self.maze.is_current(self.column, self.line)
     }
 }
 
