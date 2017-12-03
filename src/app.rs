@@ -32,7 +32,7 @@ impl App {
         App {
             gl,
             maze: Maze::new(6, 4),
-            idle_period: 1.0,
+            idle_period: 0.4,
             exec: None
         }
     }
@@ -75,19 +75,36 @@ impl App {
     }
 
     pub fn update(&mut self, args: &UpdateArgs) {
-        if let Some(ref mut exec) = self.exec {
-            let can_continue = exec.active
-                && (exec.last_status == None
-                    || exec.last_status == Some(CarveStatus::Continuing));
+        self.commit_one(args.dt);
+    }
 
-            if can_continue {
-                exec.idle_time += args.dt;
+    fn commit_one(&mut self, dt: f64) {
+        if let Some(ref mut exec) = self.exec {
+            if Self::can_commit(exec) && exec.active {
+                exec.idle_time += dt;
 
                 if exec.idle_time >= self.idle_period {
                     let status = exec.algo.carve_one(&mut self.maze);
                     exec.last_status = Some(status);
                     exec.idle_time = exec.idle_time % self.idle_period;
                 }
+            }
+        }
+    }
+
+    fn can_commit(exec: &Execution) -> bool {
+        match exec.last_status {
+            None => true,
+            Some(CarveStatus::Continuing) => true,
+            Some(_) => false
+        }
+    }
+
+    fn commit_all(&mut self) {
+        if let Some(ref mut exec) = self.exec {
+            while Self::can_commit(exec) {
+                let status = exec.algo.carve_one(&mut self.maze);
+                exec.last_status = Some(status);
             }
         }
     }
@@ -106,6 +123,9 @@ impl App {
                         exec.idle_time = 0.0;
                     }
                 }
+            },
+            Button::Keyboard(key) if key == Key::Return => {
+                self.commit_all();
             },
             Button::Keyboard(key) if key == Key::D1 => {
                 self.set_algo();
