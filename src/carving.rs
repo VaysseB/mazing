@@ -16,11 +16,14 @@ struct Logger {
 
 impl Logger {
     fn info(&self, algo: &Algo, msg: &str) {
-        println!("[{}] At {}:{}  {}",
+        println!("[{}] At {}  {}",
                  self.name,
-                 algo.curr_pos().x(),
-                 algo.curr_pos().y(),
+                 Self::format_pos(algo.curr_pos()),
                  msg);
+    }
+
+    fn format_pos(pos: &Walker) -> String {
+        format!("{}:{}", pos.x(), pos.y())
     }
 }
 
@@ -189,8 +192,8 @@ impl SideWinder {
         pos.carve_down(maze);
         
         self.log.info(self, &format!(
-                "Close group, carve down at {}:{}",
-                pos.x(), pos.y()));
+                "Close group, carve down at {}",
+                Logger::format_pos(&pos)));
     }
 }
 
