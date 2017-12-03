@@ -15,6 +15,7 @@ extern crate bitflags;
 pub mod app;
 pub mod maze;
 pub mod maze_render;
+pub mod carving;
 
 
 fn main() {

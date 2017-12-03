@@ -73,6 +73,70 @@ impl Maze {
             gate.contains(GateWay::HORI)
         }
     }
+ 
+    fn continuity(
+        &self,
+        start_x: usize,
+        start_y: usize,
+        end_x: usize,
+        end_y: usize)
+        -> Option<GateWay>
+    {
+        let diff_x = start_x as i32 - end_x as i32;
+        let adj_x = diff_x == 1 || diff_x == -1;
+        
+        let diff_y = start_y as i32 - end_y as i32;
+        let adj_y = diff_y == 1 || diff_y == -1;
+
+        if diff_x == 0 && adj_y {
+            Some(GateWay::VERT) 
+        } else if diff_y == 0 && adj_x {
+            Some(GateWay::HORI)
+        } else {
+            None
+        }
+    }
+
+    pub fn carve(&mut self,
+                 start_x: usize,
+                 start_y: usize,
+                 end_x: usize,
+                 end_y: usize)
+    {
+        if self.is_out(start_x, start_y) {
+            return;
+        } else if self.is_out(end_x, end_y) {
+            return;
+        }
+
+        match self.continuity(start_x, start_y, end_x, end_y) {
+            Some(GateWay::VERT) if start_y < end_y => {
+                let index = self.localize(start_x, start_y);
+                if let Some(ref mut gate) = self.gates.get_mut(index) {
+                    gate.remove(GateWay::VERT);
+                }
+            }
+            Some(GateWay::VERT) if end_y < start_y => {
+                let index = self.localize(end_x, end_y);
+                if let Some(ref mut gate) = self.gates.get_mut(index) {
+                    gate.remove(GateWay::VERT);
+                }
+            }
+            Some(GateWay::HORI) if start_x < end_x => {
+                let index = self.localize(start_x, start_y);
+                if let Some(ref mut gate) = self.gates.get_mut(index) {
+                    gate.remove(GateWay::HORI);
+                }
+            }
+            Some(GateWay::HORI) if end_x < start_x => {
+                let index = self.localize(end_x, end_y);
+                if let Some(ref mut gate) = self.gates.get_mut(index) {
+                    gate.remove(GateWay::HORI);
+                }
+            }
+            _ => ( println!("Failed to carve") )
+        }
+    } 
 }
 
 

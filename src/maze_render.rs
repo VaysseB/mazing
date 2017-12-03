@@ -16,7 +16,7 @@ impl StaticMazeRenderer {
     pub fn new() -> StaticMazeRenderer {
         StaticMazeRenderer {
             cell_size: 20.0,
-            line_thickness: 0.5
+            line_thickness: 1.0
         }
     }
 
