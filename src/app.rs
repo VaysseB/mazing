@@ -8,11 +8,12 @@ use opengl_graphics::{ GlGraphics };
 use super::maze::Maze;
 use super::maze_render::{MazeRenderer, StaticMazeRenderer};
 use super::carving;
-use super::carving::CarveStatus;
+use super::carving::{CarveStatus};
 
 
 pub struct Execution {
-    algo: carving::BinaryTree,
+    algo_type: carving::KnownAlgo,
+    algo: Box<carving::Algo>,
     active: bool,
     last_status: Option<CarveStatus>,
     idle_time: f64 // second
@@ -37,11 +38,14 @@ impl App {
         }
     }
 
-    fn set_algo(&mut self) {
-        println!("[app] Set algorithm");
+    fn set_algo(&mut self, algo_type: carving::KnownAlgo) {
+        println!("[app] Set algorithm {}", algo_type.name());
+
+        let algo = algo_type.create();
 
         self.exec = Some(Execution {
-            algo: carving::BinaryTree::new(),
+            algo_type,
+            algo,
             active: false,
             last_status: None,
             idle_time: 0.0
@@ -50,10 +54,16 @@ impl App {
 
     fn reset_maze(&mut self) {
         println!("[app] Reset maze");
+        let algo_type = match self.exec {
+            Some(ref exec) => Some(exec.algo_type.clone()),
+            None => None
+        };
         self.exec = None;
 
         let (w, h) = (self.maze.columns(), self.maze.lines());
         self.maze = Maze::new(w, h);
+
+        algo_type.map(|t| self.set_algo(t));
     }
 
     pub fn render(&mut self, args: &RenderArgs) {
@@ -128,7 +138,10 @@ impl App {
                 self.commit_all();
             },
             Button::Keyboard(key) if key == Key::D1 => {
-                self.set_algo();
+                self.set_algo(carving::KnownAlgo::BinaryTree);
+            },
+            Button::Keyboard(key) if key == Key::D2 => {
+                self.set_algo(carving::KnownAlgo::SideWinder);
             },
             Button::Keyboard(key) if key == Key::Backspace => {
                 self.reset_maze();

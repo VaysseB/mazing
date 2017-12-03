@@ -15,14 +15,12 @@ struct Logger {
 
 
 impl Logger {
-    fn info<T>(&self, algo: &BinaryTree, msg: T) 
-        where T: Into<&'static str>
-    {
+    fn info(&self, algo: &Algo, msg: &str) {
         println!("[{}] At {}:{}  {}",
                  self.name,
-                 algo.pos.x(),
-                 algo.pos.y(),
-                 msg.into());
+                 algo.curr_pos().x(),
+                 algo.curr_pos().y(),
+                 msg);
     }
 }
 
@@ -65,6 +63,10 @@ impl Walker {
         self.y + 1 == maze.lines()
     }
 
+    fn move_x(&self, x: usize) -> Walker {
+        Walker { x, y: self.y }
+    }
+
     fn walk_right_then_down(&mut self, maze: &Maze) {
         self.x += 1;
 
@@ -80,8 +82,39 @@ impl Walker {
 }
 
 
+pub trait Algo {
+    fn curr_pos(&self) -> &Walker;
+
+    fn carve_one(&mut self, maze: &mut Maze) -> CarveStatus;
+}
+
+
+#[derive(Clone)]
+pub enum KnownAlgo {
+    BinaryTree,
+    SideWinder
+}
+
+
+impl KnownAlgo {
+    pub fn name(&self) -> &'static str {
+        match *self {
+            KnownAlgo::BinaryTree => "BinaryTree",
+            KnownAlgo::SideWinder => "SideWinder"
+        }
+    }
+    
+    pub fn create(&self) -> Box<Algo> {
+        match *self {
+            KnownAlgo::BinaryTree => Box::new(BinaryTree::new()),
+            KnownAlgo::SideWinder => Box::new(SideWinder::new())
+        }
+    }
+}
+
+
 pub struct BinaryTree {
-    pub pos: Walker,
+    pos: Walker,
     log: Logger
 }
 
@@ -92,15 +125,24 @@ impl BinaryTree {
         let log = Logger { name: "BinaryTree" };
         BinaryTree { pos, log }
     }
+}
 
-    pub fn carve_one(&mut self, maze: &mut Maze) -> CarveStatus {
+
+impl Algo for BinaryTree {
+    fn curr_pos(&self) -> &Walker {
+        &self.pos
+    }
+
+    fn carve_one(&mut self, maze: &mut Maze) -> CarveStatus {
         if self.pos.is_done_walking_right_then_down(maze) {
             self.log.info(self, "Done");
             return CarveStatus::Done;
-        } else if self.pos.is_on_down_border(maze) {
+        } 
+        else if self.pos.is_on_down_border(maze) {
             self.log.info(self, "Forced carve right");
             self.pos.carve_right(maze);
-        } else if self.pos.is_on_right_border(maze) {
+        } 
+        else if self.pos.is_on_right_border(maze) {
             self.log.info(self, "Forced carve down");
             self.pos.carve_down(maze);
         } else {
@@ -117,6 +159,81 @@ impl BinaryTree {
         }
 
         self.pos.walk_right_then_down(maze);
+        CarveStatus::Continuing
+    }
+}
+
+
+pub struct SideWinder {
+    pub pos: Walker,
+    start_x: usize,
+    log: Logger
+}
+
+
+impl SideWinder {
+    pub fn new() -> SideWinder {
+        let pos = Walker::new();
+        let log = Logger { name: "SideWinder" };
+        let start_x = pos.x();
+        SideWinder { pos, log, start_x }
+    }
+    
+    fn close_group(&mut self, maze: &mut Maze) {
+        use carving::rand::Rng;
+        
+        let door = rand::thread_rng().gen_range(
+            self.start_x, self.pos.x() + 1);
+
+        let pos = self.pos.move_x(door);
+        pos.carve_down(maze);
+        
+        self.log.info(self, &format!(
+                "Close group, carve down at {}:{}",
+                pos.x(), pos.y()));
+    }
+}
+
+
+impl Algo for SideWinder {
+    fn curr_pos(&self) -> &Walker {
+        &self.pos
+    }
+
+    fn carve_one(&mut self, maze: &mut Maze) -> CarveStatus {
+        let mut update_start = false;
+
+        if self.pos.is_done_walking_right_then_down(maze) {
+            self.log.info(self, "Done");
+            return CarveStatus::Done;
+        } 
+        else if self.pos.is_on_down_border(maze) {
+            self.log.info(self, "Forced carve right");
+            self.pos.carve_right(maze);
+        } 
+        else if self.pos.is_on_right_border(maze) {
+            self.close_group(maze);
+            update_start = true;
+        } 
+        else {
+            use carving::rand::Rng;
+
+            let build_group = rand::thread_rng().next_f32() < 0.5;
+            if build_group {
+                self.log.info(self, "Randomly continue group, carve right");
+                self.pos.carve_right(maze);
+            } else {
+                self.close_group(maze);
+                update_start = true;
+            }
+        }
+
+        self.pos.walk_right_then_down(maze);
+        
+        if update_start {
+            self.start_x = self.pos.x();
+        }
+
         CarveStatus::Continuing
     }
 }
