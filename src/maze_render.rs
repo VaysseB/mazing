@@ -2,7 +2,8 @@ use graphics::{color, Context, line, rectangle};
 use graphics::types::Color;
 use opengl_graphics::{GlGraphics};
 
-use super::maze::{Maze, CellInfo};
+use super::grid::{GridCell};
+use super::maze::{Maze, CellStatus};
 
 pub trait MazeRenderer {
     fn render(&mut self, maze: &Maze, context: &Context, gl: &mut GlGraphics);
@@ -14,7 +15,7 @@ trait CellColorisation {
 }
 
 
-impl<'a> CellColorisation for CellInfo<'a> {
+impl<'a> CellColorisation for GridCell<'a, CellStatus> {
     fn to_color(&self) -> Option<Color> {
         if self.is_current() {
             Some(color::hex("FF5733"))

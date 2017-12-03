@@ -13,6 +13,7 @@ use opengl_graphics::{ GlGraphics, OpenGL };
 extern crate bitflags;
 
 pub mod app;
+pub mod grid;
 pub mod maze;
 pub mod maze_render;
 pub mod carving;
