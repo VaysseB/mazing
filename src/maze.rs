@@ -95,9 +95,9 @@ impl Maze {
                  end_x: usize,
                  end_y: usize)
     {
-        if self.contains(start_x, start_y) {
+        if !self.contains(start_x, start_y) {
             return;
-        } else if self.contains(end_x, end_y) {
+        } else if !self.contains(end_x, end_y) {
             return;
         }
 

@@ -35,7 +35,7 @@ impl<T> Grid<T> {
     }
 
     pub fn contains(&self, x: usize, y: usize) -> bool {
-        y >= self.lines || x >= self.columns
+        y < self.lines && x < self.columns
     }
 
     fn localize(&self, x: usize, y: usize) -> usize {
@@ -43,7 +43,7 @@ impl<T> Grid<T> {
     }
 
     pub fn cell(&self, x: usize, y: usize) -> Option<&T> {
-        if self.contains(x, y) {
+        if !self.contains(x, y) {
             None
         } else {
             let index = self.localize(x, y);
@@ -52,7 +52,7 @@ impl<T> Grid<T> {
     }
 
     pub fn cell_mut(&mut self, x: usize, y: usize) -> Option<&mut T> {
-        if self.contains(x, y) {
+        if !self.contains(x, y) {
             None
         } else {
             let index = self.localize(x, y);
