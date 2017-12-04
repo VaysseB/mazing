@@ -1,19 +1,30 @@
 use super::grid::{Grid, GridCell};
 
 
-bitflags! {
-    pub struct CellStatus: u32 {
-        const GATE_HORI = 0b00000001;
-        const GATE_VERT = 0b00000010;
-        const ACTIVE    = 0b00000100;
-        const CURRENT   = 0b00001000;
-    }
+enum GateWay {
+    HORIZONTAL,
+    VERTICAL
+}
+
+
+pub struct CellStatus {
+    open_gate_hori: bool,
+    open_gate_vert: bool,
+    active: bool,
+    current: bool,
+    path_depth: Option<usize>
 }
 
 
 impl Default for CellStatus {
     fn default() -> CellStatus {
-        CellStatus{ bits: 3 }
+        CellStatus{ 
+            open_gate_hori: false,
+            open_gate_vert: false,
+            active: false,
+            current: false,
+            path_depth: None
+        }
     }
 }
 
@@ -24,46 +35,46 @@ pub type Maze = Grid<CellStatus>;
 impl Maze {
     pub fn is_active(&self, x: usize, y: usize) -> bool {
         self.cell(x, y)
-            .map(|&cell| cell.contains(CellStatus::ACTIVE))
+            .map(|ref cell| cell.active)
             .unwrap_or(false)
     }
 
     pub fn is_current(&self, x: usize, y: usize) -> bool {
         self.cell(x, y)
-            .map(|&cell| cell.contains(CellStatus::CURRENT))
+            .map(|ref cell| cell.current)
             .unwrap_or(false)
     }
 
     pub fn can_move_down(&self, x: usize, y: usize) -> bool {
         self.cell(x, y)
-            .map(|&cell| !cell.contains(CellStatus::GATE_VERT))
+            .map(|ref cell| cell.open_gate_vert)
             .unwrap_or(false)
     }
 
     pub fn can_move_right(&self, x: usize, y: usize) -> bool {
         self.cell(x, y)
-            .map(|&cell| !cell.contains(CellStatus::GATE_HORI))
+            .map(|ref cell| cell.open_gate_hori)
             .unwrap_or(false)
     }
 
     pub fn mark_active(&mut self, x: usize, y: usize) {
         self.cell_mut(x, y)
-            .map(|cell| cell.insert(CellStatus::ACTIVE));
+            .map(|cell| cell.active = true);
     }
  
     pub fn unmark_active(&mut self, x: usize, y: usize) {
         self.cell_mut(x, y)
-            .map(|cell| cell.remove(CellStatus::ACTIVE));
+            .map(|cell| cell.active = false);
     }
  
     pub fn mark_current(&mut self, x: usize, y: usize) {
         self.cell_mut(x, y)
-            .map(|cell| cell.insert(CellStatus::CURRENT));
+            .map(|cell| cell.current = true);
     }
  
     pub fn unmark_current(&mut self, x: usize, y: usize) {
         self.cell_mut(x, y)
-            .map(|cell| cell.remove(CellStatus::CURRENT));
+            .map(|cell| cell.current = false);
     }
  
     fn continuity(
@@ -72,7 +83,7 @@ impl Maze {
         start_y: usize,
         end_x: usize,
         end_y: usize)
-        -> Option<CellStatus>
+        -> Option<GateWay>
     {
         let diff_x = start_x as i32 - end_x as i32;
         let adj_x = diff_x == 1 || diff_x == -1;
@@ -81,9 +92,9 @@ impl Maze {
         let adj_y = diff_y == 1 || diff_y == -1;
 
         if diff_x == 0 && adj_y {
-            Some(CellStatus::GATE_VERT) 
+            Some(GateWay::VERTICAL) 
         } else if diff_y == 0 && adj_x {
-            Some(CellStatus::GATE_HORI)
+            Some(GateWay::HORIZONTAL)
         } else {
             None
         }
@@ -102,28 +113,28 @@ impl Maze {
         }
 
         match self.continuity(start_x, start_y, end_x, end_y) {
-            Some(CellStatus::GATE_VERT) if start_y < end_y => {
+            Some(GateWay::VERTICAL) if start_y < end_y => {
                 if let Some(ref mut cell) = 
                     self.cell_mut(start_x, start_y) {
-                    cell.remove(CellStatus::GATE_VERT);
+                        cell.open_gate_vert = true;
                 }
             }
-            Some(CellStatus::GATE_VERT) if end_y < start_y => {
+            Some(GateWay::VERTICAL) if end_y < start_y => {
                 if let Some(ref mut cell) = 
                     self.cell_mut(end_x, end_y) {
-                    cell.remove(CellStatus::GATE_VERT);
+                        cell.open_gate_vert = true;
                 }
             }
-            Some(CellStatus::GATE_HORI) if start_x < end_x => {
+            Some(GateWay::HORIZONTAL) if start_x < end_x => {
                 if let Some(ref mut cell) = 
                     self.cell_mut(start_x, start_y) {
-                    cell.remove(CellStatus::GATE_HORI);
+                        cell.open_gate_hori = true;
                 }
             }
-            Some(CellStatus::GATE_HORI) if end_x < start_x => {
+            Some(GateWay::HORIZONTAL) if end_x < start_x => {
                 if let Some(ref mut cell) = 
                     self.cell_mut(end_x, end_y) {
-                    cell.remove(CellStatus::GATE_HORI);
+                        cell.open_gate_hori = true;
                 }
             }
             _ => ( println!("Failed to carve") )

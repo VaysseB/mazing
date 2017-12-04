@@ -9,9 +9,6 @@ use piston::input::{RenderEvent, UpdateEvent, PressEvent};
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ GlGraphics, OpenGL };
 
-#[macro_use]
-extern crate bitflags;
-
 pub mod app;
 pub mod grid;
 pub mod maze;
