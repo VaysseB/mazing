@@ -4,24 +4,11 @@ use super::super::maze::Maze;
 use algo::base::{AlgoStatus, Algo, Walker, Logger};
 
 
-pub struct BinaryTree {
-    pos: Walker,
-    log: Logger
-}
-
-
-impl BinaryTree {
-    pub fn new() -> BinaryTree {
-        let pos = Walker::new();
-        let log = Logger { name: "BinaryTree" };
-        BinaryTree { pos, log }
-    }
-}
-
 trait CarvingActions {
     fn carve_right(&self, maze: &mut Maze);
     fn carve_down(&self, maze: &mut Maze);
 }
+
 
 impl CarvingActions for Walker {
     fn carve_right(&self, maze: &mut Maze) {
@@ -34,7 +21,26 @@ impl CarvingActions for Walker {
 }
 
 
+pub struct BinaryTree {
+    pos: Walker,
+    log: Logger
+}
+
+
+impl BinaryTree {
+    pub fn new() -> BinaryTree {
+        let pos = Walker::new();
+        let log = Logger {};
+        BinaryTree { pos, log }
+    }
+}
+
+
 impl Algo for BinaryTree {
+    fn name(&self) -> &'static str {
+        "BinaryTree"
+    }
+
     fn curr_pos(&self) -> &Walker {
         &self.pos
     }
@@ -80,7 +86,7 @@ pub struct SideWinder {
 impl SideWinder {
     pub fn new() -> SideWinder {
         let pos = Walker::new();
-        let log = Logger { name: "SideWinder" };
+        let log = Logger {};
         let start_x = pos.x();
         SideWinder { pos, log, start_x }
     }
@@ -115,6 +121,10 @@ impl SideWinder {
 
 
 impl Algo for SideWinder {
+    fn name(&self) -> &'static str {
+        "SideWinder"
+    }
+
     fn curr_pos(&self) -> &Walker {
         &self.pos
     }

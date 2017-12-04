@@ -1,3 +1,6 @@
+use super::super::maze::Maze;
+
+
 #[derive(Debug, PartialEq)]
 pub enum AlgoStatus {
     Done,
@@ -5,15 +8,13 @@ pub enum AlgoStatus {
 }
 
 
-pub struct Logger {
-    pub name: &'static str,
-}
+pub struct Logger {}
 
 
 impl Logger {
     pub fn info(&self, algo: &Algo, msg: &str) {
         println!("[{}] At {}  {}",
-                 self.name,
+                 algo.name(),
                  Self::format_pos(algo.curr_pos()),
                  msg);
     }
@@ -47,9 +48,6 @@ impl Walker {
         maze.unmark_current(self.x, self.y)
     }
 }
-
-
-use super::super::maze::Maze;
 
 
 impl Walker {
@@ -101,6 +99,8 @@ impl Walker {
 }
 
 pub trait Algo {
+    fn name(&self) -> &'static str;
+    
     fn curr_pos(&self) -> &Walker;
 
     fn carve_one(&mut self, maze: &mut Maze) -> AlgoStatus;
