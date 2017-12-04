@@ -3,19 +3,44 @@ extern crate graphics;
 extern crate opengl_graphics;
 
 use piston::input::{RenderArgs, UpdateArgs, Button, Key};
-use opengl_graphics::{ GlGraphics };
+use opengl_graphics::{GlGraphics};
 
 use super::maze::Maze;
 use super::maze_render::{MazeRenderer, StaticMazeRenderer};
+use super::algo_base::{Algo, AlgoStatus};
 use super::carving;
-use super::carving::{CarveStatus};
+
+
+#[derive(Clone)]
+pub enum KnownAlgo {
+    BinaryTree,
+    SideWinder
+}
+
+
+impl KnownAlgo {
+    pub fn name(&self) -> &'static str {
+        match *self {
+            KnownAlgo::BinaryTree => "BinaryTree",
+            KnownAlgo::SideWinder => "SideWinder"
+        }
+    }
+    
+    pub fn create(&self) -> Box<Algo> {
+        match *self {
+            KnownAlgo::BinaryTree => Box::new(carving::BinaryTree::new()),
+            KnownAlgo::SideWinder => Box::new(carving::SideWinder::new())
+        }
+    }
+}
+
 
 
 pub struct Execution {
-    algo_type: carving::KnownAlgo,
-    algo: Box<carving::Algo>,
+    algo_type: KnownAlgo,
+    algo: Box<Algo>,
     active: bool,
-    last_status: Option<CarveStatus>,
+    last_status: Option<AlgoStatus>,
     idle_time: f64 // second
 }
 
@@ -38,7 +63,7 @@ impl App {
         }
     }
 
-    fn set_algo(&mut self, algo_type: carving::KnownAlgo) {
+    fn set_algo(&mut self, algo_type: KnownAlgo) {
         println!("[app] Set algorithm {}", algo_type.name());
 
         let algo = algo_type.create();
@@ -105,7 +130,7 @@ impl App {
     fn can_commit(exec: &Execution) -> bool {
         match exec.last_status {
             None => true,
-            Some(CarveStatus::Continuing) => true,
+            Some(AlgoStatus::Continuing) => true,
             Some(_) => false
         }
     }
@@ -138,10 +163,10 @@ impl App {
                 self.commit_all();
             },
             Button::Keyboard(key) if key == Key::D1 => {
-                self.set_algo(carving::KnownAlgo::BinaryTree);
+                self.set_algo(KnownAlgo::BinaryTree);
             },
             Button::Keyboard(key) if key == Key::D2 => {
-                self.set_algo(carving::KnownAlgo::SideWinder);
+                self.set_algo(KnownAlgo::SideWinder);
             },
             Button::Keyboard(key) if key == Key::Backspace => {
                 self.reset_maze();

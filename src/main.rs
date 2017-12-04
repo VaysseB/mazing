@@ -17,6 +17,7 @@ pub mod grid;
 pub mod maze;
 pub mod maze_render;
 pub mod carving;
+pub mod algo_base;
 
 
 fn main() {
