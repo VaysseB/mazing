@@ -1,7 +1,7 @@
 extern crate rand;
 
-use super::maze::Maze;
-use super::algo_base::{AlgoStatus, Algo, Walker, Logger};
+use super::super::maze::Maze;
+use algo::base::{AlgoStatus, Algo, Walker, Logger};
 
 
 pub struct BinaryTree {
@@ -15,6 +15,21 @@ impl BinaryTree {
         let pos = Walker::new();
         let log = Logger { name: "BinaryTree" };
         BinaryTree { pos, log }
+    }
+}
+
+trait CarvingActions {
+    fn carve_right(&self, maze: &mut Maze);
+    fn carve_down(&self, maze: &mut Maze);
+}
+
+impl CarvingActions for Walker {
+    fn carve_right(&self, maze: &mut Maze) {
+        maze.carve(self.x, self.y, self.x + 1, self.y);
+    }
+
+    fn carve_down(&self, maze: &mut Maze) {
+        maze.carve(self.x, self.y, self.x, self.y + 1);
     }
 }
 
@@ -37,7 +52,7 @@ impl Algo for BinaryTree {
             self.log.info(self, "Forced carve down");
             self.pos.carve_down(maze);
         } else {
-            use carving::rand::Rng;
+            use self::rand::Rng;
 
             let vert = rand::thread_rng().next_f32() < 0.5;
             if vert {
@@ -71,7 +86,7 @@ impl SideWinder {
     }
     
     fn close_group(&mut self, maze: &mut Maze) {
-        use carving::rand::Rng;
+        use self::rand::Rng;
 
         for x in self.start_x..self.pos.x() {
             let pos = self.pos.move_x(x);
@@ -118,7 +133,7 @@ impl Algo for SideWinder {
             self.continue_group(maze);
         } 
         else {
-            use carving::rand::Rng;
+            use self::rand::Rng;
 
             let build_group = rand::thread_rng().next_f32() < 0.5;
             if build_group {

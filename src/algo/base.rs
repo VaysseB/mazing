@@ -25,12 +25,32 @@ impl Logger {
 
 
 pub struct Walker {
-    x: usize,
-    y: usize
+    pub x: usize,
+    pub y: usize
 }
 
 
-use super::maze::Maze;
+impl Walker {
+    pub fn mark_active(&self, maze: &mut Maze) {
+        maze.mark_active(self.x, self.y)
+    }
+
+    pub fn unmark_active(&self, maze: &mut Maze) {
+        maze.unmark_active(self.x, self.y)
+    }
+
+    pub fn mark_current(&self, maze: &mut Maze) {
+        maze.mark_current(self.x, self.y)
+    }
+
+    pub fn unmark_current(&self, maze: &mut Maze) {
+        maze.unmark_current(self.x, self.y)
+    }
+}
+
+
+
+use super::super::maze::Maze;
 
 
 impl Walker {
@@ -47,30 +67,6 @@ impl Walker {
 
     pub fn y(&self) -> usize {
         self.y
-    }
-
-    pub fn carve_right(&self, maze: &mut Maze) {
-        maze.carve(self.x, self.y, self.x + 1, self.y);
-    }
-
-    pub fn carve_down(&self, maze: &mut Maze) {
-        maze.carve(self.x, self.y, self.x, self.y + 1);
-    }
-
-    pub fn mark_active(&self, maze: &mut Maze) {
-        maze.mark_active(self.x, self.y)
-    }
-
-    pub fn unmark_active(&self, maze: &mut Maze) {
-        maze.unmark_active(self.x, self.y)
-    }
-
-    pub fn mark_current(&self, maze: &mut Maze) {
-        maze.mark_current(self.x, self.y)
-    }
-
-    pub fn unmark_current(&self, maze: &mut Maze) {
-        maze.unmark_current(self.x, self.y)
     }
 
     pub fn is_on_right_border(&self, maze: &Maze) -> bool {
@@ -104,7 +100,6 @@ impl Walker {
         self.y >= maze.lines() || self.x >= maze.columns()
     }
 }
-
 
 pub trait Algo {
     fn curr_pos(&self) -> &Walker;

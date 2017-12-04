@@ -7,8 +7,8 @@ use opengl_graphics::{GlGraphics};
 
 use super::maze::Maze;
 use super::maze_render::{MazeRenderer, StaticMazeRenderer};
-use super::algo_base::{Algo, AlgoStatus};
-use super::carving;
+use super::algo::carving;
+use super::algo::base::{Algo, AlgoStatus};
 
 
 #[derive(Clone)]
