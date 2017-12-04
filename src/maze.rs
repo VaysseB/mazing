@@ -1,4 +1,4 @@
-use super::grid::{Grid, GridCell};
+use super::grid::{Grid, GridCell, GridCellMut, GridIterator};
 
 
 enum GateWay {
@@ -29,54 +29,40 @@ impl Default for CellStatus {
 }
 
 
-pub type Maze = Grid<CellStatus>;
+pub struct Maze { 
+    grid: Grid<CellStatus>,
+    max_path_depth: usize
+}
 
 
 impl Maze {
-    pub fn is_active(&self, x: usize, y: usize) -> bool {
-        self.cell(x, y)
-            .map(|ref cell| cell.active)
-            .unwrap_or(false)
+    pub fn new(w: usize, h: usize) -> Maze {
+        Maze {
+            grid: Grid::new(w, h),
+            max_path_depth: 0
+        }
     }
 
-    pub fn is_current(&self, x: usize, y: usize) -> bool {
-        self.cell(x, y)
-            .map(|ref cell| cell.current)
-            .unwrap_or(false)
+    pub fn iter(&self) -> GridIterator<CellStatus> {
+        self.grid.iter()
     }
 
-    pub fn can_move_down(&self, x: usize, y: usize) -> bool {
-        self.cell(x, y)
-            .map(|ref cell| cell.open_gate_vert)
-            .unwrap_or(false)
+    pub fn columns(&self) -> usize {
+        self.grid.columns()
     }
 
-    pub fn can_move_right(&self, x: usize, y: usize) -> bool {
-        self.cell(x, y)
-            .map(|ref cell| cell.open_gate_hori)
-            .unwrap_or(false)
+    pub fn lines(&self) -> usize {
+        self.grid.lines()
     }
 
-    pub fn mark_active(&mut self, x: usize, y: usize) {
-        self.cell_mut(x, y)
-            .map(|cell| cell.active = true);
+    pub fn at(&self, x: usize, y: usize) -> Option<GridCell<CellStatus>> {
+        self.grid.at(x, y)
     }
- 
-    pub fn unmark_active(&mut self, x: usize, y: usize) {
-        self.cell_mut(x, y)
-            .map(|cell| cell.active = false);
+
+    pub fn at_mut(&mut self, x: usize, y: usize) -> Option<GridCellMut<CellStatus>> {
+        self.grid.at_mut(x, y)
     }
- 
-    pub fn mark_current(&mut self, x: usize, y: usize) {
-        self.cell_mut(x, y)
-            .map(|cell| cell.current = true);
-    }
- 
-    pub fn unmark_current(&mut self, x: usize, y: usize) {
-        self.cell_mut(x, y)
-            .map(|cell| cell.current = false);
-    }
- 
+
     fn continuity(
         &self,
         start_x: usize,
@@ -106,34 +92,34 @@ impl Maze {
                  end_x: usize,
                  end_y: usize)
     {
-        if !self.contains(start_x, start_y) {
+        if !self.grid.contains(start_x, start_y) {
             return;
-        } else if !self.contains(end_x, end_y) {
+        } else if !self.grid.contains(end_x, end_y) {
             return;
         }
 
         match self.continuity(start_x, start_y, end_x, end_y) {
             Some(GateWay::VERTICAL) if start_y < end_y => {
                 if let Some(ref mut cell) = 
-                    self.cell_mut(start_x, start_y) {
+                    self.grid.cell_mut(start_x, start_y) {
                         cell.open_gate_vert = true;
                 }
             }
             Some(GateWay::VERTICAL) if end_y < start_y => {
                 if let Some(ref mut cell) = 
-                    self.cell_mut(end_x, end_y) {
+                    self.grid.cell_mut(end_x, end_y) {
                         cell.open_gate_vert = true;
                 }
             }
             Some(GateWay::HORIZONTAL) if start_x < end_x => {
                 if let Some(ref mut cell) = 
-                    self.cell_mut(start_x, start_y) {
+                    self.grid.cell_mut(start_x, start_y) {
                         cell.open_gate_hori = true;
                 }
             }
             Some(GateWay::HORIZONTAL) if end_x < start_x => {
                 if let Some(ref mut cell) = 
-                    self.cell_mut(end_x, end_y) {
+                    self.grid.cell_mut(end_x, end_y) {
                         cell.open_gate_hori = true;
                 }
             }
@@ -145,18 +131,48 @@ impl Maze {
 
 impl<'a> GridCell<'a, CellStatus> {
     pub fn can_move_down(&self) -> bool {
-        return self.grid.can_move_down(self.column, self.line)
+        self.grid.cell(self.column, self.line)
+            .map(|ref cell| cell.open_gate_vert)
+            .unwrap_or(false)
     }
     
     pub fn can_move_right(&self) -> bool {
-        return self.grid.can_move_right(self.column, self.line)
+        self.grid.cell(self.column, self.line)
+            .map(|ref cell| cell.open_gate_hori)
+            .unwrap_or(false)
     }
     
     pub fn is_active(&self) -> bool {
-        return self.grid.is_active(self.column, self.line)
+        self.grid.cell(self.column, self.line)
+            .map(|ref cell| cell.active)
+            .unwrap_or(false)
     }
     
     pub fn is_current(&self) -> bool {
-        return self.grid.is_current(self.column, self.line)
+        self.grid.cell(self.column, self.line)
+            .map(|ref cell| cell.current)
+            .unwrap_or(false)
+    }
+}
+    
+impl<'a> GridCellMut<'a, CellStatus> {
+    pub fn mark_current(&mut self) {
+        self.grid.cell_mut(self.column, self.line)
+            .map(|ref mut cell| cell.current = true);
+    }
+    
+    pub fn unmark_current(&mut self) {
+        self.grid.cell_mut(self.column, self.line)
+            .map(|ref mut cell| cell.current = false);
+    }
+    
+    pub fn mark_active(&mut self) {
+        self.grid.cell_mut(self.column, self.line)
+            .map(|ref mut cell| cell.active = true);
+    }
+    
+    pub fn unmark_active(&mut self) {
+        self.grid.cell_mut(self.column, self.line)
+            .map(|ref mut cell| cell.active = false);
     }
 }

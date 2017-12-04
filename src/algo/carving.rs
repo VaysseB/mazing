@@ -95,7 +95,7 @@ impl SideWinder {
         use self::rand::Rng;
 
         for x in self.start_x..self.pos.x() {
-            let pos = self.pos.move_x(x);
+            let mut pos = self.pos.move_x(x);
             pos.unmark_active(maze);
         }
         

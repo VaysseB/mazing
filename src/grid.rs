@@ -59,6 +59,22 @@ impl<T> Grid<T> {
             Some(&mut self.cells[index])
         }
     }
+
+    pub fn at(&self, x: usize, y: usize) -> Option<GridCell<T>> {
+        if self.contains(x, y) {
+            Some(GridCell { column: x, line: y, grid: self })
+        } else {
+            None
+        }
+    }
+
+    pub fn at_mut(&mut self, x: usize, y: usize) -> Option<GridCellMut<T>> {
+        if self.contains(x, y) {
+            Some(GridCellMut { column: x, line: y, grid: self })
+        } else {
+            None
+        }
+    }
 }
 
 
@@ -74,6 +90,14 @@ pub struct GridCell<'a, T> where T: 'a {
     pub column: usize,
     pub line: usize,
     pub grid: &'a Grid<T>
+}
+
+
+#[derive(Debug)]
+pub struct GridCellMut<'a, T> where T: 'a {
+    pub column: usize,
+    pub line: usize,
+    pub grid: &'a mut Grid<T>
 }
 
 

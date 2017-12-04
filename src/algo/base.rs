@@ -32,20 +32,20 @@ pub struct Walker {
 
 
 impl Walker {
-    pub fn mark_active(&self, maze: &mut Maze) {
-        maze.mark_active(self.x, self.y)
+    pub fn mark_active(&mut self, maze: &mut Maze) {
+        maze.at_mut(self.x, self.y).map(|ref mut cell| cell.mark_active());
     }
 
-    pub fn unmark_active(&self, maze: &mut Maze) {
-        maze.unmark_active(self.x, self.y)
+    pub fn unmark_active(&mut self, maze: &mut Maze) {
+        maze.at_mut(self.x, self.y).map(|ref mut cell| cell.unmark_active());
     }
 
-    pub fn mark_current(&self, maze: &mut Maze) {
-        maze.mark_current(self.x, self.y)
+    pub fn mark_current(&mut self, maze: &mut Maze) {
+        maze.at_mut(self.x, self.y).map(|ref mut cell| cell.mark_current());
     }
 
-    pub fn unmark_current(&self, maze: &mut Maze) {
-        maze.unmark_current(self.x, self.y)
+    pub fn unmark_current(&mut self, maze: &mut Maze) {
+        maze.at_mut(self.x, self.y).map(|ref mut cell| cell.unmark_current());
     }
 }
 
