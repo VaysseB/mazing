@@ -49,7 +49,6 @@ impl Walker {
 }
 
 
-
 use super::super::maze::Maze;
 
 
