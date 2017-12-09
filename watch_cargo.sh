@@ -1,4 +1,4 @@
-CMD="clear ; cargo run | head -n 30"
+CMD="clear ; cargo run 2>&1 | head -n 40"
 
 sh -c "$CMD"
 

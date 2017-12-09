@@ -7,88 +7,77 @@ use opengl_graphics::{GlGraphics};
 
 use super::maze::Maze;
 use super::maze_render::{MazeRenderer, StaticMazeRenderer};
-use super::algo::carving;
-use super::algo::base::{Algo, AlgoStatus};
+use super::algo;
+use super::task;
 
 
 #[derive(Clone)]
-pub enum KnownAlgo {
+pub enum Algo {
     BinaryTree,
     SideWinder
 }
 
 
-impl KnownAlgo {
+impl Algo {
     pub fn name(&self) -> &'static str {
         match *self {
-            KnownAlgo::BinaryTree => "BinaryTree",
-            KnownAlgo::SideWinder => "SideWinder"
+            Algo::BinaryTree => "BinaryTree",
+            Algo::SideWinder => "SideWinder"
         }
     }
     
-    pub fn create(&self) -> Box<Algo> {
+    pub fn create<'app>(&self) -> Box<task::Task<algo::base::Args<'app>>> {
         match *self {
-            KnownAlgo::BinaryTree => Box::new(carving::BinaryTree::new()),
-            KnownAlgo::SideWinder => Box::new(carving::SideWinder::new())
+            Algo::BinaryTree => Box::new(algo::carving::BinaryTree::new()),
+            Algo::SideWinder => Box::new(algo::carving::SideWinder::new())
         }
     }
 }
 
 
 
-pub struct Execution {
-    algo_type: KnownAlgo,
-    algo: Box<Algo>,
+pub struct Execution<'app> {
+    tasks: task::Executor<algo::base::Args<'app>>,
     active: bool,
-    last_status: Option<AlgoStatus>,
-    idle_time: f64 // second
+    idle_period: f64, // in second
+    waited_time: f64 // second
 }
 
 
-pub struct App {
+pub struct App<'app> {
     gl: GlGraphics,
     maze: Maze,
-    idle_period: f64, // in second
-    exec: Option<Execution>
+    exec: Execution<'app>
 }
 
 
-impl App {
-    pub fn new(gl: GlGraphics) -> App {
+impl<'app> App<'app> {
+    pub fn new(gl: GlGraphics) -> App<'app> {
         App {
             gl,
             maze: Maze::new(6, 4),
-            idle_period: 0.4,
-            exec: None
+            exec: Execution{
+                tasks: task::Executor::new(),
+                active: false,
+                idle_period: 0.4,
+                waited_time: 0.0
+            }
         }
     }
 
-    fn set_algo(&mut self, algo_type: KnownAlgo) {
-        println!("[app] Set algorithm {}", algo_type.name());
+    fn add_task(&mut self, algo_type: Algo) {
+        println!("[app] Add task {}", algo_type.name());
 
         let algo = algo_type.create();
-
-        self.exec = Some(Execution {
-            algo_type,
-            algo,
-            active: false,
-            last_status: None,
-            idle_time: 0.0
-        });
+        self.exec.tasks.stack(algo);
     }
 
     fn reset_maze(&mut self) {
         println!("[app] Reset maze");
-        let algo_type = match self.exec {
-            Some(ref exec) => Some(exec.algo_type.clone()),
-            None => None
-        };
-        self.exec = None;
+        self.exec.tasks.clear();
 
         let (w, h) = (self.maze.columns(), self.maze.lines());
         self.maze = Maze::new(w, h);
-
-        algo_type.map(|t| self.set_algo(t));
     }
 
     pub fn render(&mut self, args: &RenderArgs) {
@@ -109,64 +98,52 @@ impl App {
         });
     }
 
-    pub fn update(&mut self, args: &UpdateArgs) {
-        self.commit_one(args.dt);
-    }
-
-    fn commit_one(&mut self, dt: f64) {
-        if let Some(ref mut exec) = self.exec {
-            if Self::can_commit(exec) && exec.active {
-                exec.idle_time += dt;
-
-                if exec.idle_time >= self.idle_period {
-                    let status = exec.algo.carve_one(&mut self.maze);
-                    exec.last_status = Some(status);
-                    exec.idle_time = exec.idle_time % self.idle_period;
-                }
-            }
+    pub fn update(&'app mut self, args: &UpdateArgs) {
+        if self.exec.active {
+            self.commit_one(args.dt);
         }
     }
 
-    fn can_commit(exec: &Execution) -> bool {
-        match exec.last_status {
-            None => true,
-            Some(AlgoStatus::Continuing) => true,
-            Some(_) => false
+    fn commit_one(&'app mut self, dt: f64) {
+        self.exec.waited_time += dt;
+
+        if self.exec.waited_time >= self.exec.idle_period {
+            let maze = &mut self.maze;
+            let args = algo::base::Args { maze };
+            self.exec.tasks.run_step(args);
+            self.exec.waited_time %= self.exec.idle_period;
         }
     }
 
-    fn commit_all(&mut self) {
-        if let Some(ref mut exec) = self.exec {
-            while Self::can_commit(exec) {
-                let status = exec.algo.carve_one(&mut self.maze);
-                exec.last_status = Some(status);
-            }
-        }
+    fn commit_all(&'app mut self) {
+        let args = algo::base::Args {
+            maze: &mut self.maze
+        };
+        
+        self.exec.tasks.run(args);
     }
 
-    pub fn button_pressed(&mut self, args: &Button) {
+    pub fn button_pressed(&'app mut self, args: &Button) {
         match *args {
             Button::Keyboard(key) if key == Key::Space => {
-                if let Some(ref mut exec) = self.exec {
-                    exec.active = !exec.active;
+                self.exec.active = !self.exec.active;
 
-                    if exec.active {
-                        println!("[app] Resume algo");
-                        exec.idle_time = self.idle_period * 0.5;
-                    } else {
-                        println!("[app] Pause execution");
-                        exec.idle_time = 0.0;
-                    }
+                if self.exec.active {
+                    println!("[app] Resume algo");
+                    self.exec.waited_time = self.exec.idle_period;
+                } else {
+                    println!("[app] Pause execution");
+                    self.exec.waited_time = 0.0;
                 }
             },
             Button::Keyboard(key) if key == Key::Return => {
                 self.commit_all();
             },
             Button::Keyboard(key) if key == Key::D1 => {
-                self.set_algo(KnownAlgo::BinaryTree);
+                self.add_task(Algo::BinaryTree);
             },
             Button::Keyboard(key) if key == Key::D2 => {
-                self.set_algo(KnownAlgo::SideWinder);
+                self.add_task(Algo::SideWinder);
             },
             Button::Keyboard(key) if key == Key::Backspace => {
                 self.reset_maze();

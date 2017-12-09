@@ -3,17 +3,20 @@ extern crate graphics;
 extern crate glutin_window;
 extern crate opengl_graphics;
 
+
 use piston::window::WindowSettings;
 use piston::event_loop::{Events, EventSettings};
 use piston::input::{RenderEvent, UpdateEvent, PressEvent};
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ GlGraphics, OpenGL };
 
+
 pub mod app;
 pub mod grid;
 pub mod maze;
 pub mod maze_render;
 pub mod algo;
+pub mod task;
 
 
 fn main() {

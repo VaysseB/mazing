@@ -5,6 +5,7 @@ use opengl_graphics::{GlGraphics};
 use super::grid::{GridCell};
 use super::maze::{Maze, CellStatus};
 
+
 pub trait MazeRenderer {
     fn render(&mut self, maze: &Maze, context: &Context, gl: &mut GlGraphics);
 }

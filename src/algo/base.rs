@@ -1,27 +1,8 @@
 use super::super::maze::Maze;
 
 
-#[derive(Debug, PartialEq)]
-pub enum AlgoStatus {
-    Done,
-    Continuing
-}
-
-
-pub struct Logger {}
-
-
-impl Logger {
-    pub fn info(&self, algo: &Algo, msg: &str) {
-        println!("[{}] At {}  {}",
-                 algo.name(),
-                 Self::format_pos(algo.curr_pos()),
-                 msg);
-    }
-
-    pub fn format_pos(pos: &Walker) -> String {
-        format!("{}:{}", pos.x(), pos.y())
-    }
+pub struct Args<'a> {
+    pub maze: &'a mut Maze
 }
 
 
@@ -32,6 +13,10 @@ pub struct Walker {
 
 
 impl Walker {
+    pub fn to_str(&self) -> String {
+        format!("{}:{}", self.x, self.y)
+    }
+    
     pub fn mark_active(&mut self, maze: &mut Maze) {
         maze.at_mut(self.x, self.y).map(|ref mut cell| cell.mark_active());
     }
@@ -96,12 +81,4 @@ impl Walker {
     pub fn is_done_walking_right_then_down(&self, maze: &Maze) -> bool {
         self.y >= maze.lines() || self.x >= maze.columns()
     }
-}
-
-pub trait Algo {
-    fn name(&self) -> &'static str;
-    
-    fn curr_pos(&self) -> &Walker;
-
-    fn carve_one(&mut self, maze: &mut Maze) -> AlgoStatus;
 }

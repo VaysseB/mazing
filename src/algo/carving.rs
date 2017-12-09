@@ -1,7 +1,8 @@
 extern crate rand;
 
 use super::super::maze::Maze;
-use algo::base::{AlgoStatus, Algo, Walker, Logger};
+use super::super::task::{Task, Status};
+use algo::base::{Walker, Args};
 
 
 trait CarvingActions {
@@ -23,55 +24,57 @@ impl CarvingActions for Walker {
 
 pub struct BinaryTree {
     pos: Walker,
-    log: Logger
+    action: String
 }
 
 
 impl BinaryTree {
     pub fn new() -> BinaryTree {
         let pos = Walker::new();
-        let log = Logger {};
-        BinaryTree { pos, log }
+        BinaryTree { pos, action: String::new() }
+    }
+    
+    fn log_action(&mut self, msg: &str) {
+        self.action = format!("At {}, {}", self.pos.to_str(), msg);
     }
 }
 
 
-impl Algo for BinaryTree {
+impl<'a> Task<Args<'a>> for BinaryTree {
     fn name(&self) -> &'static str {
         "BinaryTree"
     }
 
-    fn curr_pos(&self) -> &Walker {
-        &self.pos
+    fn action<'t>(&'t self) -> Option<&'t String> {
+        Some(&self.action)
     }
 
-    fn carve_one(&mut self, maze: &mut Maze) -> AlgoStatus {
-        if self.pos.is_done_walking_right_then_down(maze) {
-            self.log.info(self, "Done");
-            return AlgoStatus::Done;
+    fn execute_one(&mut self, args: &mut Args<'a>) -> Status {
+        if self.pos.is_done_walking_right_then_down(args.maze) {
+            return Status::Done;
         } 
-        else if self.pos.is_on_down_border(maze) {
-            self.log.info(self, "Forced carve right");
-            self.pos.carve_right(maze);
+        else if self.pos.is_on_down_border(args.maze) {
+            self.log_action("Forced carve right");
+            self.pos.carve_right(args.maze);
         } 
-        else if self.pos.is_on_right_border(maze) {
-            self.log.info(self, "Forced carve down");
-            self.pos.carve_down(maze);
+        else if self.pos.is_on_right_border(args.maze) {
+            self.log_action("Forced carve down");
+            self.pos.carve_down(args.maze);
         } else {
             use self::rand::Rng;
 
             let vert = rand::thread_rng().next_f32() < 0.5;
             if vert {
-                self.log.info(self, "Forced carve down");
-                self.pos.carve_down(maze);
+                self.log_action("Forced carve down");
+                self.pos.carve_down(args.maze);
             } else {
-                self.log.info(self, "Forced carve right");
-                self.pos.carve_right(maze);
+                self.log_action("Forced carve right");
+                self.pos.carve_right(args.maze);
             }
         }
 
-        self.pos.walk_right_then_down(maze);
-        AlgoStatus::Continuing
+        self.pos.walk_right_then_down(args.maze);
+        Status::Continuing
     }
 }
 
@@ -79,16 +82,19 @@ impl Algo for BinaryTree {
 pub struct SideWinder {
     pub pos: Walker,
     start_x: usize,
-    log: Logger
+    action: String
 }
 
 
 impl SideWinder {
     pub fn new() -> SideWinder {
         let pos = Walker::new();
-        let log = Logger {};
         let start_x = pos.x();
-        SideWinder { pos, log, start_x }
+        SideWinder { pos, action: String::new(), start_x }
+    }
+
+    fn log_action(&mut self, msg: &str) {
+        self.action = format!("At {}, {}", self.pos.to_str(), msg);
     }
     
     fn close_group(&mut self, maze: &mut Maze) {
@@ -104,67 +110,63 @@ impl SideWinder {
 
         let pos = self.pos.move_x(door);
         
-        self.log.info(self, &format!(
-                "Close group, carve down at {}",
-                Logger::format_pos(&pos)));
+        self.log_action(&format!("Close group, carve down at {}", pos.to_str()));
         
         pos.carve_down(maze);
     }
     
     fn continue_group(&mut self, maze: &mut Maze) {
         self.pos.mark_active(maze);
-        
-        self.log.info(self, "Continue group, carve right");
+        self.log_action("Continue group, carve right");
         self.pos.carve_right(maze);
     }
 }
 
 
-impl Algo for SideWinder {
+impl<'a> Task<Args<'a>> for SideWinder {
     fn name(&self) -> &'static str {
         "SideWinder"
     }
 
-    fn curr_pos(&self) -> &Walker {
-        &self.pos
+    fn action<'t>(&'t self) -> Option<&'t String> {
+        Some(&self.action)
     }
 
-    fn carve_one(&mut self, maze: &mut Maze) -> AlgoStatus {
+    fn execute_one(&mut self, args: &mut Args<'a>) -> Status {
         let mut update_start = false;
 
-        if self.pos.is_done_walking_right_then_down(maze) {
-            return AlgoStatus::Done;
+        if self.pos.is_done_walking_right_then_down(args.maze) {
+            return Status::Done;
         } 
-        else if self.pos.is_on_right_border(maze) {
-            self.close_group(maze);
+        else if self.pos.is_on_right_border(args.maze) {
+            self.close_group(args.maze);
             update_start = true;
         } 
-        else if self.pos.is_on_down_border(maze) {
-            self.continue_group(maze);
+        else if self.pos.is_on_down_border(args.maze) {
+            self.continue_group(args.maze);
         } 
         else {
             use self::rand::Rng;
 
             let build_group = rand::thread_rng().next_f32() < 0.5;
             if build_group {
-                self.continue_group(maze);
+                self.continue_group(args.maze);
             } else {
-                self.close_group(maze);
+                self.close_group(args.maze);
                 update_start = true;
             }
         }
 
-        self.pos.walk_right_then_down(maze);
+        self.pos.walk_right_then_down(args.maze);
         
         if update_start {
             self.start_x = self.pos.x();
         }
 
-        if self.pos.is_done_walking_right_then_down(maze) {
-            self.log.info(self, "Done");
-            AlgoStatus::Done
+        if self.pos.is_done_walking_right_then_down(args.maze) {
+            Status::Done
         } else {
-            AlgoStatus::Continuing
+            Status::Continuing
         }
     }
 }
