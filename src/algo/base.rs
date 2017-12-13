@@ -1,11 +1,11 @@
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use super::super::maze::Maze;
+use super::super::maze::OrthoMaze;
 
 
 pub struct Args {
-    pub maze: Rc<RefCell<Maze>>
+    pub maze: Rc<RefCell<OrthoMaze>>
 }
 
 
@@ -20,19 +20,19 @@ impl Walker {
         format!("{}:{}", self.x, self.y)
     }
     
-    pub fn mark_active(&mut self, maze: &mut Maze) {
+    pub fn mark_active(&mut self, maze: &mut OrthoMaze) {
         maze.at_mut(self.x, self.y).map(|ref mut cell| cell.mark_active());
     }
 
-    pub fn unmark_active(&mut self, maze: &mut Maze) {
+    pub fn unmark_active(&mut self, maze: &mut OrthoMaze) {
         maze.at_mut(self.x, self.y).map(|ref mut cell| cell.unmark_active());
     }
 
-    pub fn mark_current(&mut self, maze: &mut Maze) {
+    pub fn mark_current(&mut self, maze: &mut OrthoMaze) {
         maze.at_mut(self.x, self.y).map(|ref mut cell| cell.mark_current());
     }
 
-    pub fn unmark_current(&mut self, maze: &mut Maze) {
+    pub fn unmark_current(&mut self, maze: &mut OrthoMaze) {
         maze.at_mut(self.x, self.y).map(|ref mut cell| cell.unmark_current());
     }
 }
@@ -54,11 +54,11 @@ impl Walker {
         self.y
     }
 
-    pub fn is_on_right_border(&self, maze: &Maze) -> bool {
+    pub fn is_on_right_border(&self, maze: &OrthoMaze) -> bool {
         self.x + 1 == maze.columns()
     }
 
-    pub fn is_on_down_border(&self, maze: &Maze) -> bool {
+    pub fn is_on_down_border(&self, maze: &OrthoMaze) -> bool {
         self.y + 1 == maze.lines()
     }
 
@@ -66,7 +66,7 @@ impl Walker {
         Walker { x, y: self.y }
     }
 
-    pub fn walk_right_then_down(&mut self, maze: &mut Maze) {
+    pub fn walk_right_then_down(&mut self, maze: &mut OrthoMaze) {
         self.unmark_current(maze);
 
         self.x += 1;
@@ -81,7 +81,7 @@ impl Walker {
         }
     }
     
-    pub fn is_done_walking_right_then_down(&self, maze: &Maze) -> bool {
+    pub fn is_done_walking_right_then_down(&self, maze: &OrthoMaze) -> bool {
         self.y >= maze.lines() || self.x >= maze.columns()
     }
 }

@@ -1,22 +1,22 @@
 extern crate rand;
 
-use super::super::maze::Maze;
+use super::super::maze::OrthoMaze;
 use super::super::task::{Task, Status};
 use algo::base::{Walker, Args};
 
 
 trait CarvingActions {
-    fn carve_right(&self, maze: &mut Maze);
-    fn carve_down(&self, maze: &mut Maze);
+    fn carve_right(&self, maze: &mut OrthoMaze);
+    fn carve_down(&self, maze: &mut OrthoMaze);
 }
 
 
 impl CarvingActions for Walker {
-    fn carve_right(&self, maze: &mut Maze) {
+    fn carve_right(&self, maze: &mut OrthoMaze) {
         maze.carve(self.x, self.y, self.x + 1, self.y);
     }
 
-    fn carve_down(&self, maze: &mut Maze) {
+    fn carve_down(&self, maze: &mut OrthoMaze) {
         maze.carve(self.x, self.y, self.x, self.y + 1);
     }
 }
@@ -99,7 +99,7 @@ impl SideWinder {
         self.action = format!("At {}, {}", self.pos.to_str(), msg);
     }
     
-    fn close_group(&mut self, maze: &mut Maze) {
+    fn close_group(&mut self, maze: &mut OrthoMaze) {
         use self::rand::Rng;
 
         for x in self.start_x..self.pos.x() {
@@ -117,7 +117,7 @@ impl SideWinder {
         pos.carve_down(maze);
     }
     
-    fn continue_group(&mut self, maze: &mut Maze) {
+    fn continue_group(&mut self, maze: &mut OrthoMaze) {
         self.pos.mark_active(maze);
         self.log_action("Continue group, carve right");
         self.pos.carve_right(maze);

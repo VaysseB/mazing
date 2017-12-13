@@ -29,19 +29,6 @@ impl Default for CellStatus {
 }
 
 
-pub trait Maze {
-    fn iter(&self) -> GridIterator<CellStatus>;
-
-    fn columns(&self) -> usize;
-    fn lines(&self) -> usize;
-
-    fn at(&self, x: usize, y: usize) -> Option<GridCell<CellStatus>>;
-    fn at_mut(&mut self, x: usize, y: usize) -> Option<GridCellMut<CellStatus>>;
-
-    fn carve(&mut self, start_x: usize, start_y: usize, end_x: usize, end_y: usize);
-}
-
-
 pub struct OrthoMaze { 
     grid: Grid<CellStatus>,
     max_path_depth: usize
@@ -78,30 +65,28 @@ impl OrthoMaze {
             None
         }
     }
-}
-
-impl Maze for OrthoMaze {
-    fn iter(&self) -> GridIterator<CellStatus> {
+    
+    pub fn iter(&self) -> GridIterator<CellStatus> {
         self.grid.iter()
     }
 
-    fn columns(&self) -> usize {
+    pub fn columns(&self) -> usize {
         self.grid.columns()
     }
 
-    fn lines(&self) -> usize {
+    pub fn lines(&self) -> usize {
         self.grid.lines()
     }
 
-    fn at(&self, x: usize, y: usize) -> Option<GridCell<CellStatus>> {
+    pub fn at(&self, x: usize, y: usize) -> Option<GridCell<CellStatus>> {
         self.grid.at(x, y)
     }
 
-    fn at_mut(&mut self, x: usize, y: usize) -> Option<GridCellMut<CellStatus>> {
+    pub fn at_mut(&mut self, x: usize, y: usize) -> Option<GridCellMut<CellStatus>> {
         self.grid.at_mut(x, y)
     }
 
-    fn carve(&mut self,
+    pub fn carve(&mut self,
                  start_x: usize,
                  start_y: usize,
                  end_x: usize,

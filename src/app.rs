@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use piston::input::{RenderArgs, UpdateArgs, Button, Key};
 use opengl_graphics::{GlGraphics};
 
-use super::maze::{Maze, OrthoMaze};
+use super::maze::{OrthoMaze};
 use super::maze_render::{MazeRenderer, StaticMazeRenderer};
 use super::algo;
 use super::task;
@@ -45,6 +45,7 @@ struct Execution {
     idle_period: f64, // in second
     waited_time: f64 // second
 }
+
 
 impl Execution {
     pub fn new(idle_period: f64) -> Execution {

@@ -6,7 +6,7 @@ use graphics::types::Color;
 use opengl_graphics::{GlGraphics};
 
 use super::grid::{GridCell};
-use super::maze::{Maze, OrthoMaze, CellStatus};
+use super::maze::{OrthoMaze, CellStatus};
 
 
 pub trait MazeRenderer {
