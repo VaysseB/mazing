@@ -1,8 +1,11 @@
+use std::rc::Rc;
+use std::cell::RefCell;
+
 use super::super::maze::Maze;
 
 
-pub struct Args<'a> {
-    pub maze: &'a mut Maze
+pub struct Args {
+    pub maze: Rc<RefCell<Maze>>
 }
 
 

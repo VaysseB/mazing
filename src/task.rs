@@ -10,13 +10,13 @@ pub enum Status {
 
 pub trait Task<T> {
     fn name(&self) -> &'static str;
-    fn execute_one<'args>(&'args mut self, args: &'args mut T) -> Status;
+    fn execute_one(&mut self, args: &mut T) -> Status;
 
     // Message to use before execution
-    fn context<'t>(&'t self) -> Option<&'t String> { None }
+    fn context(&self) -> Option<&String> { None }
     
     // Message to use after execution
-    fn action<'t>(&'t self) -> Option<&'t String> { None }
+    fn action(&self) -> Option<&String> { None }
 }
 
 
@@ -25,7 +25,7 @@ pub struct Executor<T> {
 }
 
 
-impl<T> Executor<T> where T: Sized {
+impl<T> Executor<T> {
     pub fn new() -> Executor<T> {
         Executor{
             stack: VecDeque::new()
@@ -78,7 +78,7 @@ impl<T> Executor<T> where T: Sized {
         println!("[{}] {}", task.name(), msg);
     }
 
-    fn try_log<'t>(task: &Box<Task<T>>, msg: Option<&'t String>) {
+    fn try_log(task: &Box<Task<T>>, msg: Option<&String>) {
         if let Some(msg) = msg {
             Self::log(task, msg);
         }

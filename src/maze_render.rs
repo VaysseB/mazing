@@ -1,13 +1,16 @@
+use std::rc::Rc;
+use std::cell::RefCell;
+
 use graphics::{color, Context, line, rectangle};
 use graphics::types::Color;
 use opengl_graphics::{GlGraphics};
 
 use super::grid::{GridCell};
-use super::maze::{Maze, CellStatus};
+use super::maze::{Maze, OrthoMaze, CellStatus};
 
 
 pub trait MazeRenderer {
-    fn render(&mut self, maze: &Maze, context: &Context, gl: &mut GlGraphics);
+    fn render(&mut self, maze: Rc<RefCell<OrthoMaze>>, context: &Context, gl: &mut GlGraphics);
 }
 
 
@@ -59,7 +62,9 @@ impl StaticMazeRenderer {
         }
     }
 
-    fn frame_box(&self, maze: &Maze) -> (f64, f64, f64, f64) {
+    fn frame_box(&self, maze: Rc<RefCell<OrthoMaze>>) -> (f64, f64, f64, f64) {
+        let maze = maze.borrow();
+
         let space = self.cell_size + self.line_thickness;
         
         let width = maze.columns() as f64 * space + self.line_thickness;
@@ -73,7 +78,7 @@ impl StaticMazeRenderer {
 
     fn draw_partial_frame_centered(
         &mut self, 
-        maze: &Maze, 
+        maze: Rc<RefCell<OrthoMaze>>, 
         context: &Context, 
         gl: &mut GlGraphics) 
     {
@@ -99,15 +104,16 @@ impl StaticMazeRenderer {
     
     fn draw_gates_centered(
         &mut self, 
-        maze: &Maze, 
+        maze: Rc<RefCell<OrthoMaze>>, 
         context: &Context, 
         gl: &mut GlGraphics) 
     {
-        let (origin_x, origin_y, _, _) = self.frame_box(maze);
+        let (origin_x, origin_y, _, _) = self.frame_box(maze.clone());
         
         let hlt = self.line_thickness * 0.5;
         let space = self.line_thickness + self.cell_size;
 
+        let maze = maze.borrow();
         for cell in maze.iter() {
             let x = cell.column;
             let y = cell.line;
@@ -137,15 +143,16 @@ impl StaticMazeRenderer {
     
     fn draw_cells_centered(
         &mut self, 
-        maze: &Maze, 
+        maze: Rc<RefCell<OrthoMaze>>, 
         context: &Context, 
         gl: &mut GlGraphics) 
     {
-        let (origin_x, origin_y, _, _) = self.frame_box(maze);
+        let (origin_x, origin_y, _, _) = self.frame_box(maze.clone());
         
         let hlt = self.line_thickness * 0.5;
         let space = self.line_thickness + self.cell_size;
 
+        let maze = maze.borrow();
         for cell in maze.iter() {
             let x = cell.column;
             let y = cell.line;
@@ -167,9 +174,9 @@ impl StaticMazeRenderer {
 
 
 impl MazeRenderer for StaticMazeRenderer {
-    fn render(&mut self, maze: &Maze, context: &Context, gl: &mut GlGraphics) {
-        self.draw_cells_centered(maze, context, gl);
-        self.draw_gates_centered(maze, context, gl);
-        self.draw_partial_frame_centered(maze, context, gl);
+    fn render(&mut self, maze: Rc<RefCell<OrthoMaze>>, context: &Context, gl: &mut GlGraphics) {
+        self.draw_cells_centered(maze.clone(), context, gl);
+        self.draw_gates_centered(maze.clone(), context, gl);
+        self.draw_partial_frame_centered(maze.clone(), context, gl);
     }
 }

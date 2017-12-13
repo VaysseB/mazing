@@ -40,7 +40,7 @@ impl BinaryTree {
 }
 
 
-impl<'a> Task<Args<'a>> for BinaryTree {
+impl Task<Args> for BinaryTree {
     fn name(&self) -> &'static str {
         "BinaryTree"
     }
@@ -49,31 +49,33 @@ impl<'a> Task<Args<'a>> for BinaryTree {
         Some(&self.action)
     }
 
-    fn execute_one(&mut self, args: &mut Args<'a>) -> Status {
-        if self.pos.is_done_walking_right_then_down(args.maze) {
+    fn execute_one(&mut self, args: &mut Args) -> Status {
+        let mut maze = args.maze.borrow_mut();
+        
+        if self.pos.is_done_walking_right_then_down(&*maze) {
             return Status::Done;
         } 
-        else if self.pos.is_on_down_border(args.maze) {
+        else if self.pos.is_on_down_border(&*maze) {
             self.log_action("Forced carve right");
-            self.pos.carve_right(args.maze);
+            self.pos.carve_right(&mut *maze);
         } 
-        else if self.pos.is_on_right_border(args.maze) {
+        else if self.pos.is_on_right_border(&*maze) {
             self.log_action("Forced carve down");
-            self.pos.carve_down(args.maze);
+            self.pos.carve_down(&mut *maze);
         } else {
             use self::rand::Rng;
 
             let vert = rand::thread_rng().next_f32() < 0.5;
             if vert {
                 self.log_action("Forced carve down");
-                self.pos.carve_down(args.maze);
+                self.pos.carve_down(&mut *maze);
             } else {
                 self.log_action("Forced carve right");
-                self.pos.carve_right(args.maze);
+                self.pos.carve_right(&mut *maze);
             }
         }
 
-        self.pos.walk_right_then_down(args.maze);
+        self.pos.walk_right_then_down(&mut *maze);
         Status::Continuing
     }
 }
@@ -123,7 +125,7 @@ impl SideWinder {
 }
 
 
-impl<'a> Task<Args<'a>> for SideWinder {
+impl Task<Args> for SideWinder {
     fn name(&self) -> &'static str {
         "SideWinder"
     }
@@ -132,38 +134,40 @@ impl<'a> Task<Args<'a>> for SideWinder {
         Some(&self.action)
     }
 
-    fn execute_one(&mut self, args: &mut Args<'a>) -> Status {
+    fn execute_one(&mut self, args: &mut Args) -> Status {
+        let mut maze = args.maze.borrow_mut();
+        
         let mut update_start = false;
 
-        if self.pos.is_done_walking_right_then_down(args.maze) {
+        if self.pos.is_done_walking_right_then_down(&*maze) {
             return Status::Done;
         } 
-        else if self.pos.is_on_right_border(args.maze) {
-            self.close_group(args.maze);
+        else if self.pos.is_on_right_border(&*maze) {
+            self.close_group(&mut *maze);
             update_start = true;
         } 
-        else if self.pos.is_on_down_border(args.maze) {
-            self.continue_group(args.maze);
+        else if self.pos.is_on_down_border(&*maze) {
+            self.continue_group(&mut *maze);
         } 
         else {
             use self::rand::Rng;
 
             let build_group = rand::thread_rng().next_f32() < 0.5;
             if build_group {
-                self.continue_group(args.maze);
+                self.continue_group(&mut *maze);
             } else {
-                self.close_group(args.maze);
+                self.close_group(&mut *maze);
                 update_start = true;
             }
         }
 
-        self.pos.walk_right_then_down(args.maze);
+        self.pos.walk_right_then_down(&mut *maze);
         
         if update_start {
             self.start_x = self.pos.x();
         }
 
-        if self.pos.is_done_walking_right_then_down(args.maze) {
+        if self.pos.is_done_walking_right_then_down(&*maze) {
             Status::Done
         } else {
             Status::Continuing
