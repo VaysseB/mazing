@@ -1,11 +1,14 @@
 use std::rc::Rc;
 use std::cell::RefCell;
 
+use super::super::grid::Within;
 use super::super::maze::OrthoMaze;
+use super::super::depth::OrthoDepthMap;
 
 
 pub struct Args {
-    pub maze: Rc<RefCell<OrthoMaze>>
+    pub maze: Rc<RefCell<OrthoMaze>>,
+    pub depth_map: Rc<RefCell<OrthoDepthMap>>
 }
 
 
@@ -21,19 +24,19 @@ impl Walker {
     }
     
     pub fn mark_active(&mut self, maze: &mut OrthoMaze) {
-        maze.at_mut(self.x, self.y).map(|ref mut cell| cell.mark_active());
+        maze.grid_mut().cell_mut(self.x, self.y).map(|ref mut cell| cell.mark_active());
     }
 
     pub fn unmark_active(&mut self, maze: &mut OrthoMaze) {
-        maze.at_mut(self.x, self.y).map(|ref mut cell| cell.unmark_active());
+        maze.grid_mut().cell_mut(self.x, self.y).map(|ref mut cell| cell.unmark_active());
     }
 
     pub fn mark_current(&mut self, maze: &mut OrthoMaze) {
-        maze.at_mut(self.x, self.y).map(|ref mut cell| cell.mark_current());
+        maze.grid_mut().cell_mut(self.x, self.y).map(|ref mut cell| cell.mark_current());
     }
 
     pub fn unmark_current(&mut self, maze: &mut OrthoMaze) {
-        maze.at_mut(self.x, self.y).map(|ref mut cell| cell.unmark_current());
+        maze.grid_mut().cell_mut(self.x, self.y).map(|ref mut cell| cell.unmark_current());
     }
 }
 
@@ -55,11 +58,11 @@ impl Walker {
     }
 
     pub fn is_on_right_border(&self, maze: &OrthoMaze) -> bool {
-        self.x + 1 == maze.columns()
+        self.x + 1 == maze.grid().columns()
     }
 
     pub fn is_on_down_border(&self, maze: &OrthoMaze) -> bool {
-        self.y + 1 == maze.lines()
+        self.y + 1 == maze.grid().lines()
     }
 
     pub fn move_x(&self, x: usize) -> Walker {
@@ -71,7 +74,7 @@ impl Walker {
 
         self.x += 1;
 
-        if self.x >= maze.columns() {
+        if self.x >= maze.grid().columns() {
             self.x = 0;
             self.y += 1;
         }
@@ -82,6 +85,6 @@ impl Walker {
     }
     
     pub fn is_done_walking_right_then_down(&self, maze: &OrthoMaze) -> bool {
-        self.y >= maze.lines() || self.x >= maze.columns()
+        self.y >= maze.grid().lines() || self.x >= maze.grid().columns()
     }
 }

@@ -12,11 +12,12 @@ use opengl_graphics::{ GlGraphics, OpenGL };
 
 
 pub mod app;
+pub mod task;
 pub mod grid;
 pub mod maze;
 pub mod maze_render;
+pub mod depth;
 pub mod algo;
-pub mod task;
 
 
 fn main() {

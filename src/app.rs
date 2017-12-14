@@ -8,8 +8,9 @@ use std::cell::RefCell;
 use piston::input::{RenderArgs, UpdateArgs, Button, Key};
 use opengl_graphics::{GlGraphics};
 
-use super::maze::{OrthoMaze};
+use super::maze::OrthoMaze;
 use super::maze_render::{MazeRenderer, StaticMazeRenderer};
+use super::depth::OrthoDepthMap;
 use super::algo;
 use super::task;
 
@@ -69,16 +70,20 @@ pub struct App {
     gl: GlGraphics,
     last_used_algo: Option<Algo>,
     maze: Rc<RefCell<OrthoMaze>>,
+    depth_map: Rc<RefCell<OrthoDepthMap>>,
     exec: Execution
 }
 
 
 impl App {
     pub fn new(gl: GlGraphics) -> App {
-        let maze = Rc::new(RefCell::new(OrthoMaze::new(6, 4)));
+        let (w, h) = (6, 4);
+        let maze = Rc::new(RefCell::new(OrthoMaze::new(w, h)));
+        let depth_map = Rc::new(RefCell::new(OrthoDepthMap::new(w, h)));
         App {
             gl,
             maze,
+            depth_map,
             last_used_algo: None,
             exec: Execution::new(0.4)
         }
@@ -91,6 +96,9 @@ impl App {
         self.last_used_algo = Some(type_);
         
         self.exec.tasks.stack(algo);
+
+        let depth_walker = algo::seeding::DjisktraWalk::new();
+        self.exec.tasks.stack(Box::new(depth_walker));
     }
 
     fn reset_maze(&mut self) {
@@ -99,9 +107,11 @@ impl App {
         
         let (w, h);
         {
+            use grid::Within;
+
             let maze = self.maze.borrow();
-            w = maze.columns();
-            h = maze.lines();
+            w = maze.grid().columns();
+            h = maze.grid().lines();
         }
         
         self.maze = Rc::new(RefCell::new(OrthoMaze::new(w, h)));
@@ -141,7 +151,8 @@ impl App {
 
         if self.exec.waited_time >= self.exec.idle_period {
             let maze = self.maze.clone();
-            let args = algo::base::Args { maze };
+            let depth_map = self.depth_map.clone();
+            let args = algo::base::Args { maze, depth_map };
             self.exec.tasks.run_step(args);
             self.exec.waited_time %= self.exec.idle_period;
         }
@@ -149,7 +160,8 @@ impl App {
 
     fn commit_all(&mut self) {
         let maze = self.maze.clone();
-        let args = algo::base::Args { maze };
+        let depth_map = self.depth_map.clone();
+        let args = algo::base::Args { maze, depth_map };
         self.exec.tasks.run(args);
     }
 

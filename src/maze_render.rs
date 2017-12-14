@@ -5,7 +5,7 @@ use graphics::{color, Context, line, rectangle};
 use graphics::types::Color;
 use opengl_graphics::{GlGraphics};
 
-use super::grid::{GridCell};
+use super::grid::{Pos, Within};
 use super::maze::{OrthoMaze, CellStatus};
 
 
@@ -19,7 +19,7 @@ trait CellColorisation {
 }
 
 
-impl<'a> CellColorisation for GridCell<'a, CellStatus> {
+impl<'a> CellColorisation for Pos<'a, CellStatus> {
     fn to_color(&self) -> Option<Color> {
         if self.is_current() {
             Some(color::hex("FF5733"))
@@ -67,8 +67,8 @@ impl StaticMazeRenderer {
 
         let space = self.cell_size + self.line_thickness;
         
-        let width = maze.columns() as f64 * space + self.line_thickness;
-        let height = maze.lines() as f64 * space + self.line_thickness;
+        let width = maze.grid().columns() as f64 * space + self.line_thickness;
+        let height = maze.grid().lines() as f64 * space + self.line_thickness;
         
         let origin_x = (width - self.line_thickness) * 0.5;
         let origin_y = (height - self.line_thickness) * 0.5;
@@ -108,13 +108,15 @@ impl StaticMazeRenderer {
         context: &Context, 
         gl: &mut GlGraphics) 
     {
+        use grid::Within;
+
         let (origin_x, origin_y, _, _) = self.frame_box(maze.clone());
         
         let hlt = self.line_thickness * 0.5;
         let space = self.line_thickness + self.cell_size;
 
         let maze = maze.borrow();
-        for cell in maze.iter() {
+        for cell in maze.grid().iter() {
             let x = cell.column;
             let y = cell.line;
 
@@ -153,7 +155,7 @@ impl StaticMazeRenderer {
         let space = self.line_thickness + self.cell_size;
 
         let maze = maze.borrow();
-        for cell in maze.iter() {
+        for cell in maze.grid().iter() {
             let x = cell.column;
             let y = cell.line;
 
