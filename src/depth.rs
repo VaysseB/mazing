@@ -1,6 +1,7 @@
 use super::grid::{Grid, Within, Pos, PosMut};
 
 
+#[derive(Debug)]
 pub struct CellStatus {
     depth: Option<usize>
 }
@@ -18,23 +19,23 @@ impl Default for CellStatus {
 //-----------------------------------------------------------------------------
 
 
-pub struct OrthoDepthMap { 
+pub struct OrthoHighMap { 
     grid: Grid<CellStatus>,
-    max_path_depth: usize
+    pub highest: usize
 }
 
 
-impl OrthoDepthMap {
-    pub fn new(w: usize, h: usize) -> OrthoDepthMap {
-        OrthoDepthMap {
+impl OrthoHighMap {
+    pub fn new(w: usize, h: usize) -> OrthoHighMap {
+        OrthoHighMap {
             grid: Grid::new(w, h),
-            max_path_depth: 0
+            highest: 0
         }
     }
 }
 
 
-impl Within<CellStatus> for OrthoDepthMap {
+impl Within<CellStatus> for OrthoHighMap {
     fn grid<'a>(&'a self) -> &'a Grid<CellStatus> {
         &self.grid
     }

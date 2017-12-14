@@ -1,14 +1,14 @@
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use super::super::grid::{Within, Address};
+use super::super::grid::Address;
 use super::super::maze::{OrthoMaze, WithinOrthoMaze};
-use super::super::depth::OrthoDepthMap;
+use super::super::depth::OrthoHighMap;
 
 
 pub struct Args {
     pub maze: Rc<RefCell<OrthoMaze>>,
-    pub depth_map: Rc<RefCell<OrthoDepthMap>>
+    pub highmap: Rc<RefCell<OrthoHighMap>>
 }
 
 

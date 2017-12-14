@@ -14,8 +14,7 @@ pub struct CellStatus {
     open_gate_hori: bool,
     open_gate_vert: bool,
     active: bool,
-    current: bool,
-    path_depth: Option<usize>
+    current: bool
 }
 
 
@@ -25,8 +24,7 @@ impl Default for CellStatus {
             open_gate_hori: false,
             open_gate_vert: false,
             active: false,
-            current: false,
-            path_depth: None
+            current: false
         }
     }
 }
@@ -36,17 +34,13 @@ impl Default for CellStatus {
 
 
 pub struct OrthoMaze { 
-    grid: Grid<CellStatus>,
-    max_path_depth: usize
+    grid: Grid<CellStatus>
 }
 
 
 impl OrthoMaze {
     pub fn new(w: usize, h: usize) -> OrthoMaze {
-        OrthoMaze {
-            grid: Grid::new(w, h),
-            max_path_depth: 0
-        }
+        OrthoMaze { grid: Grid::new(w, h) }
     }
 
     fn continuity(

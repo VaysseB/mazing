@@ -10,7 +10,7 @@ use opengl_graphics::{GlGraphics};
 
 use super::maze::{OrthoMaze, WithinOrthoMaze};
 use super::maze_render::{MazeRenderer, StaticMazeRenderer};
-use super::depth::OrthoDepthMap;
+use super::depth::OrthoHighMap;
 use super::algo;
 use super::task;
 
@@ -30,7 +30,8 @@ impl Algo {
         }
     }
     
-    pub fn create(&self, maze: &WithinOrthoMaze) -> Box<task::Task<algo::base::Args>> {
+    pub fn create(&self, maze: &WithinOrthoMaze) 
+        -> Box<task::Task<algo::base::Args>> {
         match *self {
             Algo::BinaryTree => Box::new(algo::carving::BinaryTree::new(maze)),
             Algo::SideWinder => Box::new(algo::carving::SideWinder::new(maze))
@@ -38,6 +39,8 @@ impl Algo {
     }
 }
 
+
+// ----------------------------------------------------------------------------
 
 
 struct Execution {
@@ -66,11 +69,14 @@ impl Execution {
 }
 
 
+// ----------------------------------------------------------------------------
+
+
 pub struct App {
     gl: GlGraphics,
     last_used_algo: Option<Algo>,
     maze: Rc<RefCell<OrthoMaze>>,
-    depth_map: Rc<RefCell<OrthoDepthMap>>,
+    highmap: Rc<RefCell<OrthoHighMap>>,
     exec: Execution
 }
 
@@ -79,11 +85,11 @@ impl App {
     pub fn new(gl: GlGraphics) -> App {
         let (w, h) = (6, 4);
         let maze = Rc::new(RefCell::new(OrthoMaze::new(w, h)));
-        let depth_map = Rc::new(RefCell::new(OrthoDepthMap::new(w, h)));
+        let highmap = Rc::new(RefCell::new(OrthoHighMap::new(w, h)));
         App {
             gl,
             maze,
-            depth_map,
+            highmap,
             last_used_algo: None,
             exec: Execution::new(0.4)
         }
@@ -131,6 +137,8 @@ impl App {
         let cy = args.height as f64 * 0.5;
 
         let maze = self.maze.clone();
+        let highmap = self.highmap.clone();
+        
         let mut mr = StaticMazeRenderer::new();
 
         self.gl.draw(args.viewport(), |mut c, gl| {
@@ -138,7 +146,7 @@ impl App {
 
             c.transform = c.transform.trans(cx, cy);
 
-            mr.render(maze, &c, gl);
+            mr.render(maze, highmap, &c, gl);
         });
     }
 
@@ -153,8 +161,8 @@ impl App {
 
         if self.exec.waited_time >= self.exec.idle_period {
             let maze = self.maze.clone();
-            let depth_map = self.depth_map.clone();
-            let args = algo::base::Args { maze, depth_map };
+            let highmap = self.highmap.clone();
+            let args = algo::base::Args { maze, highmap };
             self.exec.tasks.run_step(args);
             self.exec.waited_time %= self.exec.idle_period;
         }
@@ -162,8 +170,8 @@ impl App {
 
     fn commit_all(&mut self) {
         let maze = self.maze.clone();
-        let depth_map = self.depth_map.clone();
-        let args = algo::base::Args { maze, depth_map };
+        let highmap = self.highmap.clone();
+        let args = algo::base::Args { maze, highmap };
         self.exec.tasks.run(args);
     }
 

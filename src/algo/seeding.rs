@@ -1,4 +1,4 @@
-//use super::super::depth::OrthoDepthMap;
+//use super::super::depth::OrthoHighMap;
 use super::super::task::{Task, Status};
 use algo::base::{Args};
 use super::super::grid::Within;
@@ -30,12 +30,16 @@ impl Task<Args> for DjisktraWalk {
     }
 
     fn execute_one(&mut self, args: &mut Args) -> Status {
-        let mut depth_map = args.depth_map.borrow_mut();
+        let mut highmap = args.highmap.borrow_mut();
 
-        for (i, pos) in depth_map.grid().crumbs().enumerate() {
-            let pos = pos.from_mut(&mut *depth_map);
+        let mut max = 0;
+        for (i, pos) in highmap.grid().crumbs().enumerate() {
+            let pos = pos.from_mut(&mut *highmap);
             pos.expect("position exists").set_depth(i);
+            max = i;
         }
+
+        highmap.highest = max;
 
         Status::Done
     }
