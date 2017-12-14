@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use piston::input::{RenderArgs, UpdateArgs, Button, Key};
 use opengl_graphics::{GlGraphics};
 
-use super::maze::OrthoMaze;
+use super::maze::{OrthoMaze, WithinOrthoMaze};
 use super::maze_render::{MazeRenderer, StaticMazeRenderer};
 use super::depth::OrthoDepthMap;
 use super::algo;
@@ -30,10 +30,10 @@ impl Algo {
         }
     }
     
-    pub fn create(&self) -> Box<task::Task<algo::base::Args>> {
+    pub fn create(&self, maze: &WithinOrthoMaze) -> Box<task::Task<algo::base::Args>> {
         match *self {
-            Algo::BinaryTree => Box::new(algo::carving::BinaryTree::new()),
-            Algo::SideWinder => Box::new(algo::carving::SideWinder::new())
+            Algo::BinaryTree => Box::new(algo::carving::BinaryTree::new(maze)),
+            Algo::SideWinder => Box::new(algo::carving::SideWinder::new(maze))
         }
     }
 }
@@ -92,7 +92,8 @@ impl App {
     fn use_algo(&mut self, type_: Algo) {
         println!("[app] Add task {}", type_.name());
 
-        let algo = type_.create();
+        let maze = self.maze.borrow();
+        let algo = type_.create(&*maze);
         self.last_used_algo = Some(type_);
         
         self.exec.tasks.stack(algo);
@@ -117,7 +118,8 @@ impl App {
         self.maze = Rc::new(RefCell::new(OrthoMaze::new(w, h)));
 
         if let Some(ref type_) = self.last_used_algo {
-            let algo = type_.create();
+            let maze = self.maze.borrow();
+            let algo = type_.create(&*maze);
             self.exec.tasks.stack(algo);
         }
     }

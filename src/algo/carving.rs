@@ -1,41 +1,39 @@
 extern crate rand;
 
-use super::super::maze::OrthoMaze;
+use super::super::grid::{Address, Within};
+use super::super::maze::{OrthoMaze, WithinOrthoMaze};
 use super::super::task::{Task, Status};
-use algo::base::{Walker, Args};
+use algo::base::{Args};
 
 
-trait CarvingActions {
-    fn carve_right(&self, maze: &mut OrthoMaze);
-    fn carve_down(&self, maze: &mut OrthoMaze);
-}
-
-
-impl CarvingActions for Walker {
+impl Address {
     fn carve_right(&self, maze: &mut OrthoMaze) {
-        maze.carve(self.x, self.y, self.x + 1, self.y);
+        maze.carve(self.column, self.line, self.column + 1, self.line);
     }
 
     fn carve_down(&self, maze: &mut OrthoMaze) {
-        maze.carve(self.x, self.y, self.x, self.y + 1);
+        maze.carve(self.column, self.line, self.column, self.line + 1);
     }
 }
 
 
 pub struct BinaryTree {
-    pos: Walker,
+    location: Address,
     action: String
 }
 
 
 impl BinaryTree {
-    pub fn new() -> BinaryTree {
-        let pos = Walker::new();
-        BinaryTree { pos, action: String::new() }
+    pub fn new(maze: &WithinOrthoMaze) -> BinaryTree {
+        let location = maze.grid().crumbs().next().expect("first position exists");
+        BinaryTree { 
+            location,
+            action: String::new()
+        }
     }
     
     fn log_action(&mut self, msg: &str) {
-        self.action = format!("At {}, {}", self.pos.to_str(), msg);
+        self.action = format!("At {}, {}", self.location.to_str(), msg);
     }
 }
 
@@ -52,75 +50,75 @@ impl Task<Args> for BinaryTree {
     fn execute_one(&mut self, args: &mut Args) -> Status {
         let mut maze = args.maze.borrow_mut();
         
-        if self.pos.is_done_walking_right_then_down(&*maze) {
+        if self.location.is_done_walking_right_then_down(&*maze) {
             return Status::Done;
         } 
-        else if self.pos.is_on_down_border(&*maze) {
+        else if self.location.is_on_down_border(&*maze) {
             self.log_action("Forced carve right");
-            self.pos.carve_right(&mut *maze);
+            self.location.carve_right(&mut *maze);
         } 
-        else if self.pos.is_on_right_border(&*maze) {
+        else if self.location.is_on_right_border(&*maze) {
             self.log_action("Forced carve down");
-            self.pos.carve_down(&mut *maze);
+            self.location.carve_down(&mut *maze);
         } else {
             use self::rand::Rng;
 
             let vert = rand::thread_rng().next_f32() < 0.5;
             if vert {
                 self.log_action("Forced carve down");
-                self.pos.carve_down(&mut *maze);
+                self.location.carve_down(&mut *maze);
             } else {
                 self.log_action("Forced carve right");
-                self.pos.carve_right(&mut *maze);
+                self.location.carve_right(&mut *maze);
             }
         }
 
-        self.pos.walk_right_then_down(&mut *maze);
+        self.location.walk_right_then_down(&mut *maze);
         Status::Continuing
     }
 }
 
 
 pub struct SideWinder {
-    pub pos: Walker,
+    pub location: Address,
     start_x: usize,
     action: String
 }
 
 
 impl SideWinder {
-    pub fn new() -> SideWinder {
-        let pos = Walker::new();
-        let start_x = pos.x();
-        SideWinder { pos, action: String::new(), start_x }
+    pub fn new(maze: &WithinOrthoMaze) -> SideWinder {
+        let location = maze.grid().crumbs().next().expect("first position exists");
+        let start_x = location.column;
+        SideWinder { location, action: String::new(), start_x }
     }
 
     fn log_action(&mut self, msg: &str) {
-        self.action = format!("At {}, {}", self.pos.to_str(), msg);
+        self.action = format!("At {}, {}", self.location.to_str(), msg);
     }
     
     fn close_group(&mut self, maze: &mut OrthoMaze) {
         use self::rand::Rng;
 
-        for x in self.start_x..self.pos.x() {
-            let mut pos = self.pos.move_x(x);
-            pos.unmark_active(maze);
+        for column in self.start_x..self.location.column {
+            let mut location = self.location.move_column(column);
+            location.unmark_active(maze);
         }
         
         let door = rand::thread_rng().gen_range(
-            self.start_x, self.pos.x() + 1);
+            self.start_x, self.location.column + 1);
 
-        let pos = self.pos.move_x(door);
+        let location = self.location.move_column(door);
         
-        self.log_action(&format!("Close group, carve down at {}", pos.to_str()));
+        self.log_action(&format!("Close group, carve down at {}", location.to_str()));
         
-        pos.carve_down(maze);
+        location.carve_down(maze);
     }
     
     fn continue_group(&mut self, maze: &mut OrthoMaze) {
-        self.pos.mark_active(maze);
+        self.location.mark_active(maze);
         self.log_action("Continue group, carve right");
-        self.pos.carve_right(maze);
+        self.location.carve_right(maze);
     }
 }
 
@@ -139,14 +137,14 @@ impl Task<Args> for SideWinder {
         
         let mut update_start = false;
 
-        if self.pos.is_done_walking_right_then_down(&*maze) {
+        if self.location.is_done_walking_right_then_down(&*maze) {
             return Status::Done;
         } 
-        else if self.pos.is_on_right_border(&*maze) {
+        else if self.location.is_on_right_border(&*maze) {
             self.close_group(&mut *maze);
             update_start = true;
         } 
-        else if self.pos.is_on_down_border(&*maze) {
+        else if self.location.is_on_down_border(&*maze) {
             self.continue_group(&mut *maze);
         } 
         else {
@@ -161,13 +159,13 @@ impl Task<Args> for SideWinder {
             }
         }
 
-        self.pos.walk_right_then_down(&mut *maze);
+        self.location.walk_right_then_down(&mut *maze);
         
         if update_start {
-            self.start_x = self.pos.x();
+            self.start_x = self.location.column;
         }
 
-        if self.pos.is_done_walking_right_then_down(&*maze) {
+        if self.location.is_done_walking_right_then_down(&*maze) {
             Status::Done
         } else {
             Status::Continuing

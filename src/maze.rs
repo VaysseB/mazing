@@ -115,6 +115,9 @@ impl OrthoMaze {
 }
 
 
+pub type WithinOrthoMaze = Within<CellStatus>;
+
+
 impl Within<CellStatus> for OrthoMaze {
     fn grid<'a>(&'a self) -> &'a Grid<CellStatus> {
         &self.grid

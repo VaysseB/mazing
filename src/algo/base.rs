@@ -1,8 +1,8 @@
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use super::super::grid::Within;
-use super::super::maze::OrthoMaze;
+use super::super::grid::{Within, Address};
+use super::super::maze::{OrthoMaze, WithinOrthoMaze};
 use super::super::depth::OrthoDepthMap;
 
 
@@ -12,71 +12,54 @@ pub struct Args {
 }
 
 
-pub struct Walker {
-    pub x: usize,
-    pub y: usize
-}
-
-
-impl Walker {
+impl Address {
     pub fn to_str(&self) -> String {
-        format!("{}:{}", self.x, self.y)
+        format!("{}:{}", self.column, self.line)
     }
     
-    pub fn mark_active(&mut self, maze: &mut OrthoMaze) {
-        maze.grid_mut().cell_mut(self.x, self.y).map(|ref mut cell| cell.mark_active());
+    pub fn mark_active(&mut self, maze: &mut WithinOrthoMaze) {
+        self.from_mut(maze)
+            .map(|ref mut cell| cell.mark_active());
     }
 
-    pub fn unmark_active(&mut self, maze: &mut OrthoMaze) {
-        maze.grid_mut().cell_mut(self.x, self.y).map(|ref mut cell| cell.unmark_active());
+    pub fn unmark_active(&mut self, maze: &mut WithinOrthoMaze) {
+        self.from_mut(maze)
+            .map(|ref mut cell| cell.unmark_active());
     }
 
-    pub fn mark_current(&mut self, maze: &mut OrthoMaze) {
-        maze.grid_mut().cell_mut(self.x, self.y).map(|ref mut cell| cell.mark_current());
+    pub fn mark_current(&mut self, maze: &mut WithinOrthoMaze) {
+        self.from_mut(maze)
+            .map(|ref mut cell| cell.mark_current());
     }
 
-    pub fn unmark_current(&mut self, maze: &mut OrthoMaze) {
-        maze.grid_mut().cell_mut(self.x, self.y).map(|ref mut cell| cell.unmark_current());
+    pub fn unmark_current(&mut self, maze: &mut WithinOrthoMaze) {
+        self.from_mut(maze)
+            .map(|ref mut cell| cell.unmark_current());
     }
-}
 
+    pub fn is_on_right_border(&self, maze: &WithinOrthoMaze) -> bool {
+        self.column + 1 == maze.grid().columns()
+    }
 
-impl Walker {
-    pub fn new() -> Walker {
-        Walker { 
-            x: 0, 
-            y: 0,
+    pub fn is_on_down_border(&self, maze: &WithinOrthoMaze) -> bool {
+        self.line + 1 == maze.grid().lines()
+    }
+
+    pub fn move_column(&self, x: usize) -> Address {
+        Address { 
+            column: x,
+            line: self.line
         }
     }
 
-    pub fn x(&self) -> usize {
-        self.x
-    }
-
-    pub fn y(&self) -> usize {
-        self.y
-    }
-
-    pub fn is_on_right_border(&self, maze: &OrthoMaze) -> bool {
-        self.x + 1 == maze.grid().columns()
-    }
-
-    pub fn is_on_down_border(&self, maze: &OrthoMaze) -> bool {
-        self.y + 1 == maze.grid().lines()
-    }
-
-    pub fn move_x(&self, x: usize) -> Walker {
-        Walker { x, y: self.y }
-    }
-
-    pub fn walk_right_then_down(&mut self, maze: &mut OrthoMaze) {
+    pub fn walk_right_then_down(&mut self, maze: &mut WithinOrthoMaze) {
         self.unmark_current(maze);
 
-        self.x += 1;
+        self.column += 1;
 
-        if self.x >= maze.grid().columns() {
-            self.x = 0;
-            self.y += 1;
+        if self.column >= maze.grid().columns() {
+            self.column = 0;
+            self.line += 1;
         }
         
         if !self.is_done_walking_right_then_down(maze) {
@@ -84,7 +67,7 @@ impl Walker {
         }
     }
     
-    pub fn is_done_walking_right_then_down(&self, maze: &OrthoMaze) -> bool {
-        self.y >= maze.grid().lines() || self.x >= maze.grid().columns()
+    pub fn is_done_walking_right_then_down(&self, maze: &WithinOrthoMaze) -> bool {
+        self.line >= maze.grid().lines() || self.column >= maze.grid().columns()
     }
 }

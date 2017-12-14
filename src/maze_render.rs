@@ -176,7 +176,12 @@ impl StaticMazeRenderer {
 
 
 impl MazeRenderer for StaticMazeRenderer {
-    fn render(&mut self, maze: Rc<RefCell<OrthoMaze>>, context: &Context, gl: &mut GlGraphics) {
+    fn render(
+        &mut self, 
+        maze: Rc<RefCell<OrthoMaze>>, 
+        context: &Context, 
+        gl: &mut GlGraphics) 
+    {
         self.draw_cells_centered(maze.clone(), context, gl);
         self.draw_gates_centered(maze.clone(), context, gl);
         self.draw_partial_frame_centered(maze.clone(), context, gl);
