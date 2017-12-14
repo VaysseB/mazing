@@ -42,7 +42,7 @@ impl<T> Executor<T> {
 
     pub fn run(&mut self, mut args: T) {
         while !self.stack.is_empty() {
-            let mut maybe_status = self.execute_task(&mut args);
+            let maybe_status = self.execute_task(&mut args);
             if maybe_status == Some(Status::Done) {
                 self.stack.pop_front();
             }
