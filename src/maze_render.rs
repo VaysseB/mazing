@@ -7,9 +7,9 @@ use opengl_graphics::{GlGraphics};
 
 use super::grid::{Pos, Within};
 use super::maze;
-use super::depth;
+use super::highmap;
 use super::maze::OrthoMaze;
-use super::depth::OrthoHighMap;
+use super::highmap::OrthoHighMap;
 
 
 pub trait MazeRenderer {
@@ -67,17 +67,15 @@ impl StaticMazeRenderer {
 
     fn height_color<'a>(
         &'a self,
-        pos: Pos<'a, depth::CellStatus>,
+        pos: Pos<'a, highmap::CellStatus>,
         highest: usize)
         -> Option<Color> {
-            pos.depth()
+            pos.height()
                 .map(|altitude| {
-                    println!("Found height for {:?} => {} / {}",
-                             pos, altitude, highest);
                     let mut color_base = color::hex("1B5E20");
                     let altitude = altitude as f64;
                     let highest = highest as f64;
-                    color_base[3] = 0.2 + 0.8 * (altitude / highest) as ColorComponent;
+                    color_base[3] = 0.8 + 0.2 * (altitude / highest) as ColorComponent;
                     color_base
                 })
         }

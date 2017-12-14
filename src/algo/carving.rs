@@ -3,7 +3,7 @@ extern crate rand;
 use super::super::grid::Address;
 use super::super::maze::{OrthoMaze, WithinOrthoMaze};
 use super::super::task::{Task, Status};
-use algo::base::{Args};
+use algo::base::Args;
 
 
 impl Address {

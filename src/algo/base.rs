@@ -3,7 +3,7 @@ use std::cell::RefCell;
 
 use super::super::grid::Address;
 use super::super::maze::{OrthoMaze, WithinOrthoMaze};
-use super::super::depth::OrthoHighMap;
+use super::super::highmap::OrthoHighMap;
 
 
 pub struct Args {

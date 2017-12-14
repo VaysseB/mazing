@@ -16,7 +16,7 @@ pub mod task;
 pub mod grid;
 pub mod maze;
 pub mod maze_render;
-pub mod depth;
+pub mod highmap;
 pub mod algo;
 
 

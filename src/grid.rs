@@ -118,7 +118,7 @@ impl<T> Within<T> for Grid<T> {
 // ----------------------------------------------------------------------------
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Address {
     pub column: usize,
     pub line: usize
@@ -126,11 +126,11 @@ pub struct Address {
 
 
 impl Address {
-    pub fn from<'a, T>(&'a self, wgrid: &'a Within<T>) -> Option<Pos<T>> {
+    pub fn from<'a, T>(&self, wgrid: &'a Within<T>) -> Option<Pos<'a, T>> {
         wgrid.grid().cell(self.column, self.line)
     }
     
-    pub fn from_mut<'a, T>(&'a self, wgrid: &'a mut Within<T>) -> Option<PosMut<T>> {
+    pub fn from_mut<'a, T>(&self, wgrid: &'a mut Within<T>) -> Option<PosMut<'a, T>> {
         wgrid.grid_mut().cell_mut(self.column, self.line)
     }
 }
@@ -152,6 +152,79 @@ pub struct PosMut<'a, T> where T: 'a {
     pub column: usize,
     pub line: usize,
     pub grid: &'a mut Grid<T>
+}
+
+
+impl<'a, T> From<Pos<'a, T>> for Address where T: 'a {
+    fn from(pos: Pos<'a, T>) -> Address {
+        Address {
+            column: pos.column,
+            line: pos.line
+        }
+    }
+}
+
+
+impl<'a, T> From<&'a Pos<'a, T>> for Address where T: 'a {
+    fn from(pos: &'a Pos<'a, T>) -> Address {
+        Address {
+            column: pos.column,
+            line: pos.line
+        }
+    }
+}
+
+
+impl<'a, T> Pos<'a, T> where T: 'a {
+    pub fn neighbours<'b>(&'b self) -> Vec<Pos<'b, T>> {
+        let mut result = Vec::with_capacity(4);
+
+        // top
+        if let Some(new_line) = self.line.checked_sub(1) {
+            if self.grid.contains(self.column, new_line) {
+                result.push(Pos{
+                    column: self.column,
+                    line: new_line,
+                    grid: self.grid
+                });
+            }
+        }
+
+        // left
+        if let Some(new_column) = self.column.checked_sub(1) {
+            if self.grid.contains(new_column, self.line) {
+                result.push(Pos{
+                    column: new_column,
+                    line: self.line,
+                    grid: self.grid
+                });
+            }
+        }
+
+        // bottom
+        if let Some(new_line) = self.line.checked_add(1) {
+            if self.grid.contains(self.column, new_line) {
+                result.push(Pos{
+                    column: self.column,
+                    line: new_line,
+                    grid: self.grid
+                });
+            }
+        }
+
+        // right
+        if let Some(new_column) = self.column.checked_add(1) {
+            if self.grid.contains(new_column, self.line) {
+                result.push(Pos{
+                    column: new_column,
+                    line: self.line,
+                    grid: self.grid
+                });
+            }
+        }
+
+        result
+    }
 }
 
 

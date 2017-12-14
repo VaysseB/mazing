@@ -3,14 +3,14 @@ use super::grid::{Grid, Within, Pos, PosMut};
 
 #[derive(Debug)]
 pub struct CellStatus {
-    depth: Option<usize>
+    height: Option<usize>
 }
 
 
 impl Default for CellStatus {
     fn default() -> CellStatus {
         CellStatus{ 
-            depth: None
+            height: None
         }
     }
 }
@@ -46,21 +46,24 @@ impl Within<CellStatus> for OrthoHighMap {
 }
 
 
+pub type WithinOrthoHighMap = Within<CellStatus>;
+
+
 //-----------------------------------------------------------------------------
 
 
 impl<'a> Pos<'a, CellStatus> {
-    pub fn depth(&self) -> Option<usize> {
+    pub fn height(&self) -> Option<usize> {
         self.grid.at(self.column, self.line)
-            .map(|cell| cell.depth)
+            .map(|cell| cell.height)
             .unwrap_or(None)
     }
 }
     
 impl<'a> PosMut<'a, CellStatus> {
-    pub fn set_depth(&mut self, depth: usize) {
+    pub fn set_depth(&mut self, height: usize) {
         if let Some(ref mut seed) = self.grid.at_mut(self.column, self.line) {
-            seed.depth = Some(depth);
+            seed.height = Some(height);
         }
     }
 }

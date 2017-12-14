@@ -10,7 +10,7 @@ use opengl_graphics::{GlGraphics};
 
 use super::maze::{OrthoMaze, WithinOrthoMaze};
 use super::maze_render::{MazeRenderer, StaticMazeRenderer};
-use super::depth::OrthoHighMap;
+use super::highmap::OrthoHighMap;
 use super::algo;
 use super::task;
 
@@ -104,7 +104,7 @@ impl App {
         
         self.exec.tasks.stack(algo);
 
-        let depth_walker = algo::seeding::DjisktraWalk::new();
+        let depth_walker = algo::seeding::DijkstraWalk::new(&*maze);
         self.exec.tasks.stack(Box::new(depth_walker));
     }
 
@@ -122,11 +122,10 @@ impl App {
         }
         
         self.maze = Rc::new(RefCell::new(OrthoMaze::new(w, h)));
+        self.highmap = Rc::new(RefCell::new(OrthoHighMap::new(w, h)));
 
-        if let Some(ref type_) = self.last_used_algo {
-            let maze = self.maze.borrow();
-            let algo = type_.create(&*maze);
-            self.exec.tasks.stack(algo);
+        if let Some(type_) = self.last_used_algo.clone() {
+            self.use_algo(type_);
         }
     }
 
