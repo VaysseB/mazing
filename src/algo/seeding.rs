@@ -14,9 +14,9 @@ pub struct DijkstraWalk {
 
 impl DijkstraWalk {
     pub fn new(maze: &WithinOrthoMaze) -> DijkstraWalk {
-        let start = maze.grid().crumbs().next().expect("first position exists");
+        let start = maze.grid().center().expect("first position exists");
         let mut in_sight = VecDeque::new();
-        in_sight.push_back(start);
+        in_sight.push_back(start.into());
         DijkstraWalk {
             in_sight,
             action: String::new()

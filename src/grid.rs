@@ -85,6 +85,12 @@ impl<T> Grid<T> {
             None
         }
     }
+
+    pub fn center(&self) -> Option<Pos<T>> {
+        let x = self.columns / 2;
+        let y = self.lines / 2;
+        self.cell(x, y)
+    }
 }
 
 
