@@ -51,6 +51,11 @@ impl<T> Executor<T> {
         }
     }
 
+    pub fn run_task(&mut self, mut args: T) {
+        while self.execute_task(&mut args) == Some(Status::Continuing) {}
+        self.stack.pop_front();
+    }
+
     pub fn run_step(&mut self, mut args: T) {
         let maybe_status = self.execute_task(&mut args);
         if maybe_status == Some(Status::Done) {

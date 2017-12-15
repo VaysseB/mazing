@@ -5,7 +5,7 @@ extern crate opengl_graphics;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use piston::input::{RenderArgs, UpdateArgs, Button, Key};
+use piston::input::{keyboard, RenderArgs, UpdateArgs, Button, Key};
 use opengl_graphics::{GlGraphics};
 
 use super::settings::DEBUG_GATE;
@@ -180,11 +180,11 @@ impl App {
 
     pub fn update(&mut self, args: &UpdateArgs) {
         if self.exec.active {
-            self.commit_one(args.dt);
+            self.commit_one_step(args.dt);
         }
     }
 
-    fn commit_one(&mut self, dt: f64) {
+    fn commit_one_step(&mut self, dt: f64) {
         self.exec.waited_time += dt;
 
         if self.exec.waited_time >= self.exec.idle_period {
@@ -196,6 +196,13 @@ impl App {
         }
     }
 
+    fn commit_one_task(&mut self) {
+        let maze = self.maze.clone();
+        let highmap = self.highmap.clone();
+        let args = algo::base::Args { maze, highmap };
+        self.exec.tasks.run_task(args);
+    }
+
     fn commit_all(&mut self) {
         let maze = self.maze.clone();
         let highmap = self.highmap.clone();
@@ -203,7 +210,11 @@ impl App {
         self.exec.tasks.run(args);
     }
 
-    pub fn button_pressed(&mut self, args: &Button) {
+    pub fn button_pressed(
+        &mut self, 
+        args: &Button,
+        modkeys: &keyboard::ModifierKey)
+    {
         match *args {
             Button::Keyboard(key) if key == Key::Space => {
                 self.exec.active = !self.exec.active;
@@ -217,7 +228,9 @@ impl App {
                 }
             },
             Button::Keyboard(key) if key == Key::Return => {
-                self.commit_all();
+                let scoped_exec = modkeys.contains(keyboard::ModifierKey::CTRL);
+                if scoped_exec { self.commit_one_task(); }
+                else { self.commit_all(); }
             },
             Button::Keyboard(key) if key == Key::D1 => {
                 self.select_algo(Algo::BinaryTree);

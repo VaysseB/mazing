@@ -6,7 +6,7 @@ extern crate opengl_graphics;
 
 use piston::window::WindowSettings;
 use piston::event_loop::{Events, EventSettings};
-use piston::input::{RenderEvent, UpdateEvent, PressEvent};
+use piston::input::{keyboard, RenderEvent, UpdateEvent, PressEvent};
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ GlGraphics, OpenGL };
 
@@ -46,6 +46,7 @@ fn main() {
     let mut app = app::App::new(GlGraphics::new(opengl));
 
     let mut events = Events::new(EventSettings::new());
+    let mut modkeys = keyboard::ModifierKey::empty();
     while let Some(e) = events.next(&mut window) {
         if let Some(r) = e.render_args() {
             app.render(&r);
@@ -55,8 +56,10 @@ fn main() {
             app.update(&u);
         }
 
+        modkeys.event(&e);
+
         if let Some(b) = e.press_args() {
-            app.button_pressed(&b);
+            app.button_pressed(&b, &modkeys);
         }
     }
 }
