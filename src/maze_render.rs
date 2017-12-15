@@ -20,6 +20,10 @@ pub trait MazeRenderer {
         highmap: Rc<RefCell<OrthoHighMap>>,
         context: &Context,
         gl: &mut GlGraphics);
+
+    fn toggle_gate(&mut self);
+    
+    fn toggle_highmap(&mut self);
 }
 
 
@@ -27,7 +31,9 @@ pub struct StaticMazeRenderer {
     cell_size: f64,
     line_thickness: f64,
     hori_line: Color,
-    vert_line: Color
+    vert_line: Color,
+    visible_gates: bool,
+    visible_highmap: bool
 }
 
 
@@ -55,7 +61,9 @@ impl StaticMazeRenderer {
             cell_size,
             line_thickness,
             hori_line,
-            vert_line
+            vert_line,
+            visible_gates: true,
+            visible_highmap: true
         }
     }
 
@@ -89,6 +97,7 @@ impl StaticMazeRenderer {
                 })
         }
 
+
     fn frame_box(&self, maze: Rc<RefCell<OrthoMaze>>)
         -> (f64, f64, f64, f64) {
             let maze = maze.borrow();
@@ -103,6 +112,7 @@ impl StaticMazeRenderer {
 
             (-origin_x, -origin_y, width, height)
         }
+
 
     fn draw_partial_frame_centered(
         &mut self,
@@ -128,7 +138,26 @@ impl StaticMazeRenderer {
              origin_x,
              origin_y + height - hlt
         ], context.transform, gl);
+
+        if !self.visible_gates {
+            // bottom
+            line(self.hori_line, hlt, [
+                 origin_x - hlt,
+                 origin_y + height - self.line_thickness,
+                 origin_x + width - hlt,
+                 origin_y + height - self.line_thickness
+            ], context.transform, gl);
+
+            // right
+            line(self.vert_line, hlt, [
+                 origin_x + width - self.line_thickness,
+                 origin_y - hlt,
+                 origin_x + width - self.line_thickness,
+                 origin_y + height - hlt
+            ], context.transform, gl);
+        }
     }
+
 
     fn draw_gates_centered(
         &mut self,
@@ -197,8 +226,12 @@ impl StaticMazeRenderer {
             let corner_x = origin_x + x as f64 * space;
             let corner_y = origin_y + y as f64 * space;
 
-            let color = self.current_status_color(pos)
-                .or_else(|| self.height_color(hpos, highest));
+            let status_color = self.current_status_color(pos);
+            let color = if self.visible_highmap {
+                status_color.or_else(|| self.height_color(hpos, highest))
+            } else {
+                status_color
+            };
 
             if let Some(color) = color {
                 rectangle(color, [
@@ -222,7 +255,19 @@ impl MazeRenderer for StaticMazeRenderer {
         gl: &mut GlGraphics)
     {
         self.draw_cells_centered(maze.clone(), highmap.clone(), context, gl);
-        self.draw_gates_centered(maze.clone(), context, gl);
+        
         self.draw_partial_frame_centered(maze.clone(), context, gl);
+
+        if self.visible_gates {
+            self.draw_gates_centered(maze.clone(), context, gl);
+        }
+    }
+
+    fn toggle_gate(&mut self) {
+        self.visible_gates = !self.visible_gates;
+    }
+    
+    fn toggle_highmap(&mut self) {
+        self.visible_highmap = !self.visible_highmap;
     }
 }

@@ -75,6 +75,7 @@ impl Execution {
 
 pub struct App {
     gl: GlGraphics,
+    mr: StaticMazeRenderer,
     last_carve_algo: Option<Algo>,
     next_carve_algo: Option<Algo>,
     maze: Rc<RefCell<OrthoMaze>>,
@@ -99,6 +100,7 @@ impl App {
         let highmap = Rc::new(RefCell::new(OrthoHighMap::new(w, h)));
         App {
             gl,
+            mr: StaticMazeRenderer::new(),
             maze,
             highmap,
             last_carve_algo: None,
@@ -163,10 +165,11 @@ impl App {
 
         let maze = self.maze.clone();
         let highmap = self.highmap.clone();
-        
-        let mut mr = StaticMazeRenderer::new();
 
-        self.gl.draw(args.viewport(), |mut c, gl| {
+        let gl = &mut self.gl;
+        let mr = &mut self.mr;
+        
+        gl.draw(args.viewport(), |mut c, gl| {
             clear(color::WHITE, gl);
 
             c.transform = c.transform.trans(cx, cy);
@@ -221,6 +224,12 @@ impl App {
             },
             Button::Keyboard(key) if key == Key::D2 => {
                 self.select_algo(Algo::SideWinder);
+            },
+            Button::Keyboard(key) if key == Key::G => {
+                self.mr.toggle_gate();
+            },
+            Button::Keyboard(key) if key == Key::H => {
+                self.mr.toggle_highmap();
             },
             Button::Keyboard(key) if key == Key::Backspace => {
                 self.reset_maze();
