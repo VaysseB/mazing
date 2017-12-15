@@ -1,4 +1,4 @@
-CMD="clear ; cargo build 2>&1 | head -n 40"
+CMD='clear ; cargo build 2>&1 | head -n 40'
 
 sh -c "$CMD"
 

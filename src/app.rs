@@ -75,7 +75,8 @@ impl Execution {
 
 pub struct App {
     gl: GlGraphics,
-    last_used_algo: Option<Algo>,
+    last_carve_algo: Option<Algo>,
+    next_carve_algo: Option<Algo>,
     maze: Rc<RefCell<OrthoMaze>>,
     highmap: Rc<RefCell<OrthoHighMap>>,
     exec: Execution
@@ -100,22 +101,34 @@ impl App {
             gl,
             maze,
             highmap,
-            last_used_algo: None,
+            last_carve_algo: None,
+            next_carve_algo: None,
             exec: Execution::new(0.4)
         }
     }
 
-    fn use_algo(&mut self, type_: Algo) {
-        println!("[app] Add task {}", type_.name());
+    fn reset_algo(&mut self, type_: Algo) {
+        println!("[app] Reset algo with {}", type_.name());
+
+        self.exec.reset();
 
         let maze = self.maze.borrow();
         let algo = type_.create(&*maze);
-        self.last_used_algo = Some(type_);
         
+        self.last_carve_algo = Some(type_);
         self.exec.tasks.stack(algo);
 
         let depth_walker = algo::seeding::DijkstraWalk::new(&*maze);
         self.exec.tasks.stack(Box::new(depth_walker));
+    }
+
+    fn select_algo(&mut self, type_: Algo) {
+        println!("[app] Next algo is {}", type_.name());
+        if self.last_carve_algo.is_none() {
+            self.reset_algo(type_.clone());
+        }
+        
+        self.next_carve_algo = Some(type_);
     }
 
     fn reset_maze(&mut self) {
@@ -134,9 +147,12 @@ impl App {
         self.maze = Rc::new(RefCell::new(OrthoMaze::new(w, h)));
         self.highmap = Rc::new(RefCell::new(OrthoHighMap::new(w, h)));
 
-        if let Some(type_) = self.last_used_algo.clone() {
-            self.use_algo(type_);
+        let algo = self.next_carve_algo.clone().or(self.last_carve_algo.clone());
+        if let Some(type_) = algo {
+            self.reset_algo(type_);
         }
+
+        self.next_carve_algo = self.last_carve_algo.clone();
     }
 
     pub fn render(&mut self, args: &RenderArgs) {
@@ -201,10 +217,10 @@ impl App {
                 self.commit_all();
             },
             Button::Keyboard(key) if key == Key::D1 => {
-                self.use_algo(Algo::BinaryTree);
+                self.select_algo(Algo::BinaryTree);
             },
             Button::Keyboard(key) if key == Key::D2 => {
-                self.use_algo(Algo::SideWinder);
+                self.select_algo(Algo::SideWinder);
             },
             Button::Keyboard(key) if key == Key::Backspace => {
                 self.reset_maze();
