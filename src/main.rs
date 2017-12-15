@@ -12,6 +12,7 @@ use opengl_graphics::{ GlGraphics, OpenGL };
 
 
 pub mod app;
+pub mod settings;
 pub mod task;
 pub mod grid;
 pub mod maze;
@@ -20,10 +21,20 @@ pub mod highmap;
 pub mod algo;
 
 
+use settings::DEBUG_GATE;
+
+
 fn main() {
     let opengl = OpenGL::V3_2;
 
-    let win_size = [500, 450];
+    let win_size;
+    
+    if DEBUG_GATE {
+        win_size = [500, 450];
+    } else {
+        win_size = [700, 550];
+    }
+
     let win_settings = WindowSettings::new("mazing", win_size)
         .opengl(opengl)
         .srgb(false)

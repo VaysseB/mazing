@@ -1,5 +1,7 @@
 use std::collections::VecDeque;
 
+use super::settings::DEBUG_ALGO;
+
 
 #[derive(Debug, PartialEq)]
 pub enum Status {
@@ -79,8 +81,10 @@ impl<T> Executor<T> {
     }
 
     fn try_log(task: &Box<Task<T>>, msg: Option<&String>) {
-        if let Some(msg) = msg {
-            Self::log(task, msg);
+        if DEBUG_ALGO {
+            if let Some(msg) = msg {
+                Self::log(task, msg);
+            }
         }
     }
 }

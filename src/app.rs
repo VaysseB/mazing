@@ -8,6 +8,7 @@ use std::cell::RefCell;
 use piston::input::{RenderArgs, UpdateArgs, Button, Key};
 use opengl_graphics::{GlGraphics};
 
+use super::settings::DEBUG_GATE;
 use super::maze::{OrthoMaze, WithinOrthoMaze};
 use super::maze_render::{MazeRenderer, StaticMazeRenderer};
 use super::highmap::OrthoHighMap;
@@ -83,7 +84,16 @@ pub struct App {
 
 impl App {
     pub fn new(gl: GlGraphics) -> App {
-        let (w, h) = (6, 4);
+        let (w, h);
+
+        if DEBUG_GATE {
+            w = 6;
+            h = 4;
+        } else {
+            w = 60;
+            h = 40;
+        }
+        
         let maze = Rc::new(RefCell::new(OrthoMaze::new(w, h)));
         let highmap = Rc::new(RefCell::new(OrthoHighMap::new(w, h)));
         App {

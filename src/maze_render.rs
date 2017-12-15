@@ -5,6 +5,7 @@ use graphics::{color, Context, line, rectangle};
 use graphics::types::{Color, ColorComponent};
 use opengl_graphics::{GlGraphics};
 
+use super::settings::{DEBUG_GATE, DEBUG_ALGO};
 use super::grid::{Pos, Within};
 use super::maze;
 use super::highmap;
@@ -30,25 +31,31 @@ pub struct StaticMazeRenderer {
 }
 
 
-const DEBUG_MODE : bool = false;
-
-
 impl StaticMazeRenderer {
     pub fn new() -> StaticMazeRenderer {
-        if DEBUG_MODE {
-            StaticMazeRenderer {
-                cell_size: 70.0,
-                line_thickness: 8.0,
-                hori_line: color::hex("FF0000A0"),
-                vert_line: color::hex("00FF00A0")
-            }
+        let (hori_line, vert_line);
+        if DEBUG_GATE {
+            hori_line = color::hex("FF0000A0");
+            vert_line = color::hex("00FF00A0");
         } else {
-            StaticMazeRenderer {
-                cell_size: 70.0,
-                line_thickness: 8.0,
-                hori_line: color::BLACK,
-                vert_line: color::BLACK
-            }
+            hori_line = color::BLACK;
+            vert_line = color::BLACK;
+        }
+
+        let (cell_size, line_thickness);
+        if DEBUG_ALGO {
+            cell_size = 70.0;
+            line_thickness = 8.0;
+        } else {
+            cell_size = 10.0;
+            line_thickness = 1.0;
+        }
+        
+        StaticMazeRenderer {
+            cell_size,
+            line_thickness,
+            hori_line,
+            vert_line
         }
     }
 
@@ -70,13 +77,15 @@ impl StaticMazeRenderer {
         pos: Pos<'a, highmap::CellStatus>,
         highest: usize)
         -> Option<Color> {
+            use graphics::Colored;
+
             pos.height()
                 .map(|altitude| {
-                    let mut color_base = color::hex("1B5E20");
+                    let mut color = color::hex("1B5E20");
                     let altitude = altitude as f64;
                     let highest = highest as f64;
-                    color_base[3] = 0.8 + 0.2 * (altitude / highest) as ColorComponent;
-                    color_base
+                    color = color.tint(0.8 + 1.4 * (altitude / highest) as ColorComponent);
+                    color
                 })
         }
 
