@@ -46,7 +46,7 @@ fn main() {
     let mut app = app::App::new(GlGraphics::new(opengl));
 
     let mut events = Events::new(EventSettings::new());
-    let mut modkeys = keyboard::ModifierKey::empty();
+    let mut modkeys = keyboard::ModifierKey::NO_MODIFIER;
     while let Some(e) = events.next(&mut window) {
         if let Some(r) = e.render_args() {
             app.render(&r);
