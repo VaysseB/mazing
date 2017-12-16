@@ -111,7 +111,8 @@ impl OrthoMaze {
                         cell.open_gate_hori = true;
                     }
             }
-            _ => ( println!("Failed to carve") )
+            _ => ( println!("Failed to carve between {}:{} and {}:{}",
+                            start_x, start_y, end_x, end_y) )
         }
     }
 

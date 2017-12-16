@@ -21,7 +21,8 @@ use super::task;
 enum Algo {
     BinaryTree,
     SideWinder,
-    AldousBroder
+    AldousBroder,
+    Wilson
 }
 
 
@@ -30,7 +31,8 @@ impl Algo {
         match *self {
             Algo::BinaryTree => "BinaryTree",
             Algo::SideWinder => "SideWinder",
-            Algo::AldousBroder => "AldousBroder"
+            Algo::AldousBroder => "AldousBroder",
+            Algo::Wilson => "Wilson"
         }
     }
 
@@ -39,7 +41,8 @@ impl Algo {
             match *self {
                 Algo::BinaryTree => Box::new(algo::carving::BinaryTree::new(maze)),
                 Algo::SideWinder => Box::new(algo::carving::SideWinder::new(maze)),
-                Algo::AldousBroder => Box::new(algo::carving::AldousBroder::new(maze))
+                Algo::AldousBroder => Box::new(algo::carving::AldousBroder::new(maze)),
+                Algo::Wilson => Box::new(algo::carving::Wilson::new(maze))
             }
         }
 }
@@ -282,6 +285,9 @@ impl App {
             },
             Button::Keyboard(key) if key == Key::D3 => {
                 self.select_algo(Algo::AldousBroder);
+            },
+            Button::Keyboard(key) if key == Key::D4 => {
+                self.select_algo(Algo::Wilson);
             },
             Button::Keyboard(key) if key == Key::G => {
                 self.mr.toggle_gate();

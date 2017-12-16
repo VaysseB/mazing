@@ -229,7 +229,7 @@ impl AldousBroder {
 
     fn walk_to(&mut self, addr: Address, maze: &mut OrthoMaze) {
         self.location.unmark_current(&mut *maze);
-        
+
         self.location.mark_visit(&mut *maze);
         
         self.location.mark_active(&mut *maze);
@@ -295,6 +295,186 @@ impl Task<Args> for AldousBroder {
             self.clear_all(&mut *maze);
             Status::Done
         } else {
+            Status::Continuing
+        }
+    }
+}
+
+
+// -----------------------------------------------------------------------------
+
+
+pub struct Wilson {
+    pub location: Address,
+    started: bool,
+    walk: Vec<Address>,
+    action: String
+}
+
+
+impl Wilson {
+    pub fn new(maze: &WithinOrthoMaze) -> Wilson {
+        let unused_location = maze.grid().crumbs().next().expect("first position exists");
+        Wilson { 
+            location: unused_location, 
+            started: false,
+            walk: Vec::new(), 
+            action: String::new() 
+        }
+    }
+
+    fn log_action(&mut self, msg: &str) {
+        self.action = format!("At {}, {}", self.location.to_str(), msg);
+    }
+
+    fn clear_all(&mut self, maze: &mut OrthoMaze) {
+        self.location.unmark_current(maze);
+        self.clear_visit(&mut *maze);
+    }
+
+    fn clear_visit(&self, maze: &mut OrthoMaze) {
+        for addr in maze.grid().crumbs() {
+            addr.unmark_visit(maze);
+        }
+    }
+
+    fn walk_to(&mut self, addr: Address, maze: &mut OrthoMaze) {
+        self.location.unmark_current(&mut *maze);
+        
+        self.location.mark_active(&mut *maze);
+        self.walk.push(self.location.clone());
+
+        addr.mark_current(maze);
+        self.location = addr;
+    }
+
+    fn commit_walk(&mut self, addr: Address, maze: &mut OrthoMaze) {
+        self.walk.push(self.location.clone());
+        self.walk.push(addr);
+
+        for pair in self.walk.windows(2) {
+            let source = &pair[0];
+            let dest = &pair[1];
+            source.unmark_active(maze);
+            source.mark_visit(maze);
+            source.carve_to(&dest, maze);
+        }
+
+        self.walk.clear();
+    }
+
+    fn pick_next(&mut self, maze: &OrthoMaze) 
+        -> Result<Address, &'static str> {
+        let pos = self.location.from(&*maze)
+            .expect("current position exists in maze");
+
+        let candidates = pos.neighbours();
+        let maybe_selected = rand::thread_rng().choose(&candidates);
+
+        match maybe_selected {
+            None => Err("impossible situation - no neighbours"),
+            Some(value) => Ok(value.into())
+        }
+    }
+
+    fn pick_rand_unvisited(&mut self, maze: &OrthoMaze) 
+        -> Result<Address, &'static str> {
+        maze.grid().anywhere_rand_match(|ref pos| !pos.is_visited())
+            .map(|pos| pos.into())
+            .ok_or("impossible situation - no more unvisited cell")
+    }
+
+    fn rewind_to(&mut self, addr: Address, maze: &mut OrthoMaze) {
+        let res;
+        {
+            let walk = &self.walk;
+            let mut iter = walk.into_iter();
+            res = iter.by_ref()
+                .take_while(|ref x| ***x != addr)
+                .cloned()
+                .collect();
+
+            addr.unmark_active(maze);
+            for looped in iter {
+                looped.unmark_active(maze);
+            }
+        }
+
+        self.walk = res;
+        
+        self.location.unmark_current(&mut *maze);
+        addr.mark_current(&mut *maze);
+        self.location = addr;
+    }
+
+    fn relocate_rand(&mut self, maze: &mut OrthoMaze) -> Status {
+        self.location.unmark_current(&mut *maze);
+        self.location.mark_visit(&mut *maze);
+        
+        self.location = match self.pick_rand_unvisited(&*maze) {
+            Err(msg) => { self.log_action(msg); return Status::Done; }
+            Ok(value) => value
+        };
+        
+        self.location.mark_current(&mut *maze);
+        Status::Continuing
+    }
+}
+
+
+impl Task<Args> for Wilson {
+    fn name(&self) -> &'static str {
+        "Wilson"
+    }
+
+    fn action<'t>(&'t self) -> Option<&'t String> {
+        Some(&self.action)
+    }
+
+    fn execute_one(&mut self, args: &mut Args) -> Status {
+        let mut maze = args.maze.borrow_mut();
+
+        if !self.started {
+            self.started = true;
+            
+            let res = self.relocate_rand(&mut *maze);
+            self.log_action("initialised");
+            return res;
+        }
+
+        let next_addr = match self.pick_next(&*maze) {
+            Err(msg) => { self.log_action(msg); return Status::Done; }
+            Ok(value) => value
+        };
+
+        let next_is_visited = next_addr.is_visited(&*maze);
+        if next_is_visited {
+            self.commit_walk(next_addr, &mut *maze);
+            
+            if maze.is_visitation_complete() {
+                self.log_action("current walk ended, maze is complete");
+                self.clear_all(&mut *maze);
+                Status::Done
+            } else {
+                let res = self.relocate_rand(&mut *maze);
+                self.log_action("current walk ended, carve it, and select new unvisited cell");
+                res
+            }
+        }
+        else {
+            let is_in_current_walk = self.walk.contains(&next_addr);
+            
+            if is_in_current_walk {
+                self.rewind_to(next_addr.clone(), &mut *maze);
+                self.log_action(
+                    &format!("loop detected at {}, rewind",
+                             next_addr.to_str()));
+            } 
+            else {
+                self.walk_to(next_addr, &mut *maze);
+                self.log_action("walk continue");
+            }
+            
             Status::Continuing
         }
     }
