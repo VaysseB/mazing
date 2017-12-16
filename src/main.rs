@@ -23,7 +23,7 @@ pub mod highmap;
 pub mod algo;
 
 
-use settings::{DEBUG_GATE, DEBUG_ALGO};
+use settings::{DEBUG_GATE, DEBUG_ALGO, DEBUG_MAIN};
 
 
 fn main() {
@@ -51,18 +51,31 @@ fn main() {
     let mut events = Events::new(EventSettings::new());
     let mut modkeys = keyboard::ModifierKey::NO_MODIFIER;
     while let Some(e) = events.next(&mut window) {
+        if DEBUG_MAIN {
+            println!("[main] start-loop, pre-render");
+        }
         if let Some(r) = e.render_args() {
             app.render(&r);
         }
 
+        if DEBUG_MAIN {
+            println!("[main] post-render, pre-update");
+        }
         if let Some(u) = e.update_args() {
             app.update(&u);
         }
 
         modkeys.event(&e);
 
+        if DEBUG_MAIN {
+            println!("[main] post-update, pre-button-pressed");
+        }
         if let Some(b) = e.press_args() {
             app.button_pressed(&b, &modkeys);
+        }
+        
+        if DEBUG_MAIN {
+            println!("[main] post-button-pressed, end-loop");
         }
     }
 }
