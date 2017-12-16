@@ -37,6 +37,20 @@ pub struct StaticMazeRenderer {
 }
 
 
+lazy_static! {
+    static ref ROOT_COLORS : [Color; 5] = [
+        color::hex("1B5E20"), // green
+        color::hex("0D47A1"), // blue
+        color::hex("E65100"), // orange
+        color::hex("b71c1c"), // red
+        color::hex("004D40") // turquoise
+    ];
+}
+
+
+const DIST_PER_COLOR : usize = 80;
+
+
 impl StaticMazeRenderer {
     pub fn new() -> StaticMazeRenderer {
         let (hori_line, vert_line);
@@ -80,22 +94,27 @@ impl StaticMazeRenderer {
             }
         }
 
+    
     fn height_color<'a>(
         &'a self,
         pos: Pos<'a, highmap::CellStatus>,
-        highest: usize)
+        _highest: usize)
         -> Option<Color> {
-            use graphics::Colored;
-
-            pos.height()
-                .map(|altitude| {
-                    let mut color = color::hex("1B5E20");
-                    let altitude = altitude as f64;
-                    let highest = highest as f64;
-                    color = color.tint(0.8 + 1.4 * (altitude / highest) as ColorComponent);
-                    color
-                })
+            pos.height().map(|v| self.altitude_color(v))
         }
+
+    
+    fn altitude_color(&self, altitude: usize) -> Color {
+        use graphics::Colored;
+        
+        let color_index = (altitude / DIST_PER_COLOR) % ROOT_COLORS.len();
+
+        let size = DIST_PER_COLOR as f64;
+        let advance = (altitude as f64 % size) / size;
+        
+        let tint = 0.4 + 1.2 * advance;
+        ROOT_COLORS[color_index].tint(tint as ColorComponent)
+    }
 
 
     fn frame_box(&self, maze: Rc<RefCell<OrthoMaze>>)
