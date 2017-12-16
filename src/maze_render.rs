@@ -237,8 +237,8 @@ impl StaticMazeRenderer {
                 rectangle(color, [
                           corner_x - hlt,
                           corner_y - hlt,
-                          space + self.line_thickness,
-                          space + self.line_thickness
+                          space,
+                          space
                 ], context.transform, gl);
             }
         }
