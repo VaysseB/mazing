@@ -1,6 +1,8 @@
 extern crate rand;
 
-use super::super::grid::Address;
+use self::rand::Rng;
+
+use super::super::grid::{Within, Address};
 use super::super::maze::{OrthoMaze, WithinOrthoMaze};
 use super::super::task::{Task, Status};
 use algo::base::Args;
@@ -14,7 +16,12 @@ impl Address {
     fn carve_down(&self, maze: &mut OrthoMaze) {
         maze.carve(self.column, self.line, self.column, self.line + 1);
     }
+    
+    fn carve_to(&self, addr_to: &Address, maze: &mut OrthoMaze) {
+        maze.carve(self.column, self.line, addr_to.column, addr_to.line);
+    }
 }
+// -----------------------------------------------------------------------------
 
 
 pub struct BinaryTree {
@@ -61,13 +68,13 @@ impl Task<Args> for BinaryTree {
             self.log_action("Forced carve down");
             self.location.carve_down(&mut *maze);
         } else {
-            use self::rand::Rng;
-
             let vert = rand::thread_rng().next_f32() < 0.5;
             if vert {
+                // TODO remove 'Forced'
                 self.log_action("Forced carve down");
                 self.location.carve_down(&mut *maze);
             } else {
+                // TODO remove 'Forced'
                 self.log_action("Forced carve right");
                 self.location.carve_right(&mut *maze);
             }
@@ -77,6 +84,9 @@ impl Task<Args> for BinaryTree {
         Status::Continuing
     }
 }
+
+
+// -----------------------------------------------------------------------------
 
 
 pub struct SideWinder {
@@ -98,10 +108,8 @@ impl SideWinder {
     }
     
     fn close_group(&mut self, maze: &mut OrthoMaze) {
-        use self::rand::Rng;
-
         for column in self.start_x..self.location.column {
-            let mut location = self.location.move_column(column);
+            let location = self.location.move_column(column);
             location.unmark_active(maze);
         }
         
@@ -166,6 +174,125 @@ impl Task<Args> for SideWinder {
         }
 
         if self.location.is_done_walking_right_then_down(&*maze) {
+            Status::Done
+        } else {
+            Status::Continuing
+        }
+    }
+}
+
+
+// -----------------------------------------------------------------------------
+
+
+pub struct AldousBroder {
+    pub location: Address,
+    walk: Vec<Address>,
+    restart_walk: bool,
+    action: String
+}
+
+
+impl AldousBroder {
+    pub fn new(maze: &WithinOrthoMaze) -> AldousBroder {
+        let unused_location = maze.grid().crumbs().next().expect("first position exists");
+        AldousBroder { 
+            location: unused_location, 
+            walk: Vec::new(), 
+            restart_walk: true, 
+            action: String::new() 
+        }
+    }
+
+    fn log_action(&mut self, msg: &str) {
+        self.action = format!("At {}, {}", self.location.to_str(), msg);
+    }
+
+    fn clear_walk(&mut self, maze: &mut OrthoMaze) {
+        for addr in self.walk.iter() {
+            addr.unmark_active(&mut *maze);
+        }
+        self.walk.clear();
+    }
+
+    fn clear_all(&mut self, maze: &mut OrthoMaze) {
+        self.location.unmark_current(maze);
+        self.clear_walk(&mut *maze);
+        self.clear_visit(&mut *maze);
+    }
+
+    fn clear_visit(&self, maze: &mut OrthoMaze) {
+        for addr in maze.grid().crumbs() {
+            addr.unmark_visit(maze);
+        }
+    }
+
+    fn walk_to(&mut self, addr: Address, maze: &mut OrthoMaze) {
+        self.location.unmark_current(&mut *maze);
+        
+        self.location.mark_visit(&mut *maze);
+        
+        self.location.mark_active(&mut *maze);
+        self.walk.push(self.location.clone());
+
+        addr.mark_current(maze);
+        self.location = addr;
+    }
+
+    fn pick_next(&mut self, maze: &OrthoMaze) -> Result<Address, &'static str> {
+        let pos = self.location.from(&*maze)
+            .expect("current position exists in maze");
+
+        let candidates = pos.neighbours();
+        let maybe_selected = rand::thread_rng().choose(&candidates);
+
+        match maybe_selected {
+            None => Err("impossible situation - no neighbours"),
+            Some(value) => Ok(value.into())
+        }
+    }
+}
+
+
+impl Task<Args> for AldousBroder {
+    fn name(&self) -> &'static str {
+        "AldousBroder"
+    }
+
+    fn action<'t>(&'t self) -> Option<&'t String> {
+        Some(&self.action)
+    }
+
+    fn execute_one(&mut self, args: &mut Args) -> Status {
+        let mut maze = args.maze.borrow_mut();
+
+        if self.restart_walk {
+            self.clear_walk(&mut *maze);
+            self.restart_walk = false;
+        }
+
+        let next_addr = match self.pick_next(&*maze) {
+            Err(msg) => { self.log_action(msg); return Status::Done; }
+            Ok(value) => value
+        };
+
+        let must_carve = !next_addr.is_visited(&*maze);
+        if must_carve {
+            self.log_action(&format!("carve to {}", next_addr.to_str()));
+            self.location.carve_to(&next_addr, &mut maze);
+        } else {
+            self.log_action(&format!(
+                    "no carving because {} is already visited", 
+                    next_addr.to_str()));
+        }
+
+        self.restart_walk = !must_carve || self.walk.contains(&next_addr);
+
+        self.walk_to(next_addr, &mut *maze);
+
+        if maze.is_visitation_complete() {
+            self.log_action("random walk ends, maze is complete");
+            self.clear_all(&mut *maze);
             Status::Done
         } else {
             Status::Continuing

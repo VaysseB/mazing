@@ -6,6 +6,12 @@ enum GateWay {
     VERTICAL
 }
 
+pub enum Visitation {
+    None,
+    Partial(usize),
+    Complete
+}
+
 
 //-----------------------------------------------------------------------------
 
@@ -14,7 +20,8 @@ pub struct CellStatus {
     open_gate_hori: bool,
     open_gate_vert: bool,
     active: bool,
-    current: bool
+    current: bool,
+    visited: bool
 }
 
 
@@ -24,7 +31,8 @@ impl Default for CellStatus {
             open_gate_hori: false,
             open_gate_vert: false,
             active: false,
-            current: false
+            current: false,
+            visited: false
         }
     }
 }
@@ -106,6 +114,35 @@ impl OrthoMaze {
             _ => ( println!("Failed to carve") )
         }
     }
+
+    #[allow(dead_code)]
+    pub fn visitation(&self) -> Visitation {
+        let mut visit = 0;
+        
+        for cell in self.grid.iter() {
+            if cell.is_visited() {
+                visit += 1;
+            }
+        }
+
+        if visit == 0 {
+            Visitation::None
+        } else if visit == self.grid.cell_count() {
+            Visitation::Complete
+        } else {
+            Visitation::Partial(visit)
+        }
+    }
+
+    pub fn is_visitation_complete(&self) -> bool {
+        for cell in self.grid.iter() {
+            if !cell.is_visited() {
+                return false;
+            }
+        }
+
+        true
+    }
 }
 
 
@@ -175,6 +212,12 @@ impl<'a> Pos<'a, CellStatus> {
             .map(|ref cell| cell.current)
             .unwrap_or(false)
     }
+
+    pub fn is_visited(&self) -> bool {
+        self.grid.at(self.column, self.line)
+            .map(|ref cell| cell.visited)
+            .unwrap_or(false)
+    }
 }
 
 
@@ -197,5 +240,15 @@ impl<'a> PosMut<'a, CellStatus> {
     pub fn unmark_active(&mut self) {
         self.grid.at_mut(self.column, self.line)
             .map(|ref mut cell| cell.active = false);
+    }
+
+    pub fn mark_visit(&mut self) {
+        self.grid.at_mut(self.column, self.line)
+            .map(|ref mut cell| cell.visited = true);
+    }
+
+    pub fn unmark_visit(&mut self) {
+        self.grid.at_mut(self.column, self.line)
+            .map(|ref mut cell| cell.visited = false);
     }
 }

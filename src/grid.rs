@@ -1,3 +1,5 @@
+extern crate rand;
+
 use std::iter;
 use std::fmt::{Debug, Formatter, Error};
 
@@ -23,11 +25,15 @@ impl<T> Grid<T> where T: Default {
 
 impl<T> Grid<T> {
     pub fn columns(&self) -> usize {
-        return self.columns
+        self.columns
     }
 
     pub fn lines(&self) -> usize {
-        return self.lines
+        self.lines
+    }
+
+    pub fn cell_count(&self) -> usize {
+        self.lines * self.columns
     }
 
     pub fn iter(&self) -> Iterator<T> {
@@ -50,6 +56,12 @@ impl<T> Grid<T> {
 
     fn localize(&self, x: usize, y: usize) -> usize {
         y * self.columns + x
+    }
+
+    fn pin(&self, index: usize) -> (usize, usize) {
+        let y = index / self.columns;
+        let x = index - y * self.columns;
+        (x, y)
     }
 
     pub fn at(&self, x: usize, y: usize) -> Option<&T> {
@@ -91,6 +103,36 @@ impl<T> Grid<T> {
         let y = self.lines / 2;
         self.cell(x, y)
     }
+
+    pub fn anywhere_rand(&self) -> Option<Pos<T>>
+    {
+        use self::rand::Rng;
+
+        let index = rand::thread_rng().gen_range(0, self.cell_count());
+        let (column, line) = self.pin(index);
+        Some(Pos{ column, line, grid: self })
+    }
+
+    pub fn anywhere_rand_match<F>(&self, func: F) 
+        -> Option<Pos<T>> 
+        where F: Fn(&Pos<T>) -> bool
+    {
+        use self::rand::Rng;
+
+        let index = rand::thread_rng().gen_range(0, self.cell_count());
+        let (column, line) = self.pin(index);
+        let mut candidate = Pos{ column, line, grid: self };
+
+        let mut security = self.cell_count();
+        while security > 0 && !func(&candidate) {
+            let index = rand::thread_rng().gen_range(0, self.cell_count());
+            let (column, line) = self.pin(index);
+            candidate = Pos{ column, line, grid: self };
+            security -= 1;
+        }
+
+        if security == 0 { None } else { Some(candidate) }
+    }
 }
 
 
@@ -124,7 +166,7 @@ impl<T> Within<T> for Grid<T> {
 // ----------------------------------------------------------------------------
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Address {
     pub column: usize,
     pub line: usize

@@ -97,9 +97,11 @@ impl StaticMazeRenderer {
         pos: Pos<'a, maze::CellStatus>)
         -> Option<Color> {
             if pos.is_current() {
-                Some(color::hex("FF5733"))
+                Some(color::hex("FF5722"))
             } else if pos.is_active() {
-                Some(color::hex("FFDB33"))
+                Some(color::hex("FFC107"))
+            } else if pos.is_visited() {
+                Some(color::hex("9E9E9E"))
             } else {
                 None
             }

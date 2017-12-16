@@ -20,7 +20,8 @@ use super::task;
 #[derive(Clone)]
 enum Algo {
     BinaryTree,
-    SideWinder
+    SideWinder,
+    AldousBroder
 }
 
 
@@ -28,7 +29,8 @@ impl Algo {
     fn name(&self) -> &'static str {
         match *self {
             Algo::BinaryTree => "BinaryTree",
-            Algo::SideWinder => "SideWinder"
+            Algo::SideWinder => "SideWinder",
+            Algo::AldousBroder => "AldousBroder"
         }
     }
 
@@ -36,7 +38,8 @@ impl Algo {
         -> Box<task::Task<algo::base::Args>> {
             match *self {
                 Algo::BinaryTree => Box::new(algo::carving::BinaryTree::new(maze)),
-                Algo::SideWinder => Box::new(algo::carving::SideWinder::new(maze))
+                Algo::SideWinder => Box::new(algo::carving::SideWinder::new(maze)),
+                Algo::AldousBroder => Box::new(algo::carving::AldousBroder::new(maze))
             }
         }
 }
@@ -207,23 +210,27 @@ impl App {
 
     pub fn update(&mut self, args: &UpdateArgs) {
         if self.exec.active {
-            self.commit_one_step(args.dt);
+            self.commit_one_by_schedule(args.dt);
         }
     }
 
-    fn commit_one_step(&mut self, dt: Second) {
+    fn commit_one_by_schedule(&mut self, dt: Second) {
         self.exec.waited_time += dt;
 
         if self.exec.waited_time >= self.exec.speed.period() {
             for _ in 0..self.exec.speed.batch() {
-                let maze = self.maze.clone();
-                let highmap = self.highmap.clone();
-                let args = algo::base::Args { maze, highmap };
-                self.exec.tasks.run_step(args);
+                self.commit_one_step();
             }
     
             self.exec.waited_time %= self.exec.speed.period();
         }
+    }
+
+    fn commit_one_step(&mut self) {
+        let maze = self.maze.clone();
+        let highmap = self.highmap.clone();
+        let args = algo::base::Args { maze, highmap };
+        self.exec.tasks.run_step(args);
     }
 
     fn commit_one_task(&mut self) {
@@ -245,8 +252,9 @@ impl App {
         args: &Button,
         modkeys: &keyboard::ModifierKey)
     {
+        let has_ctrl = modkeys.contains(keyboard::ModifierKey::CTRL);
         match *args {
-            Button::Keyboard(key) if key == Key::Space => {
+            Button::Keyboard(key) if key == Key::Space && !has_ctrl => {
                 self.exec.active = !self.exec.active;
 
                 if self.exec.active {
@@ -257,16 +265,23 @@ impl App {
                     self.exec.waited_time = 0.0;
                 }
             },
-            Button::Keyboard(key) if key == Key::Return => {
-                let scoped_exec = modkeys.contains(keyboard::ModifierKey::CTRL);
-                if scoped_exec { self.commit_one_task(); }
-                else { self.commit_all(); }
+            Button::Keyboard(key) if key == Key::Space && has_ctrl => {
+                self.commit_one_step();
+            },
+            Button::Keyboard(key) if key == Key::Return && has_ctrl => {
+                self.commit_one_task();
+            },
+            Button::Keyboard(key) if key == Key::Return && !has_ctrl => {
+                self.commit_all();
             },
             Button::Keyboard(key) if key == Key::D1 => {
                 self.select_algo(Algo::BinaryTree);
             },
             Button::Keyboard(key) if key == Key::D2 => {
                 self.select_algo(Algo::SideWinder);
+            },
+            Button::Keyboard(key) if key == Key::D3 => {
+                self.select_algo(Algo::AldousBroder);
             },
             Button::Keyboard(key) if key == Key::G => {
                 self.mr.toggle_gate();
