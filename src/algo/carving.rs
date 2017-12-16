@@ -21,6 +21,8 @@ impl Address {
         maze.carve(self.column, self.line, addr_to.column, addr_to.line);
     }
 }
+
+
 // -----------------------------------------------------------------------------
 
 
@@ -70,12 +72,10 @@ impl Task<Args> for BinaryTree {
         } else {
             let vert = rand::thread_rng().next_f32() < 0.5;
             if vert {
-                // TODO remove 'Forced'
-                self.log_action("Forced carve down");
+                self.log_action("Carve down");
                 self.location.carve_down(&mut *maze);
             } else {
-                // TODO remove 'Forced'
-                self.log_action("Forced carve right");
+                self.log_action("Carve right");
                 self.location.carve_right(&mut *maze);
             }
         }
