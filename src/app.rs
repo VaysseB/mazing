@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use piston::input::{keyboard, RenderArgs, UpdateArgs, Button, Key};
 use opengl_graphics::{GlGraphics};
 
-use super::settings::DEBUG_GATE;
+use super::settings::{DEBUG_GATE, DEBUG_ALGO};
 use super::maze::{OrthoMaze, WithinOrthoMaze};
 use super::maze_render::{MazeRenderer, StaticMazeRenderer};
 use super::highmap::OrthoHighMap;
@@ -17,25 +17,54 @@ use super::task;
 
 
 #[derive(Clone)]
-pub enum Algo {
+enum Algo {
     BinaryTree,
     SideWinder
 }
 
 
 impl Algo {
-    pub fn name(&self) -> &'static str {
+    fn name(&self) -> &'static str {
         match *self {
             Algo::BinaryTree => "BinaryTree",
             Algo::SideWinder => "SideWinder"
         }
     }
-    
-    pub fn create(&self, maze: &WithinOrthoMaze) 
+
+    fn create(&self, maze: &WithinOrthoMaze)
         -> Box<task::Task<algo::base::Args>> {
+            match *self {
+                Algo::BinaryTree => Box::new(algo::carving::BinaryTree::new(maze)),
+                Algo::SideWinder => Box::new(algo::carving::SideWinder::new(maze))
+            }
+        }
+}
+
+
+// ----------------------------------------------------------------------------
+
+
+type Second = f64;
+
+
+enum Speed {
+    VerySlow,
+    Normal
+}
+
+
+impl Speed {
+    fn period(&self) -> Second {
         match *self {
-            Algo::BinaryTree => Box::new(algo::carving::BinaryTree::new(maze)),
-            Algo::SideWinder => Box::new(algo::carving::SideWinder::new(maze))
+            Speed::VerySlow => 0.4,
+            Speed::Normal => 0.01
+        }
+    }
+    
+    fn batch(&self) -> usize {
+        match *self {
+            Speed::VerySlow => 1,
+            Speed::Normal => 5
         }
     }
 }
@@ -47,25 +76,29 @@ impl Algo {
 struct Execution {
     tasks: task::Executor<algo::base::Args>,
     active: bool,
-    idle_period: f64, // in second
-    waited_time: f64 // second
+    speed: Speed,
+    waited_time: Second
 }
 
 
 impl Execution {
-    pub fn new(idle_period: f64) -> Execution {
+    fn new(speed: Speed) -> Execution {
         Execution {
             tasks: task::Executor::new(),
             active: false,
-            idle_period, 
+            speed,
             waited_time: 0.0
         }
     }
 
-    pub fn reset(&mut self) {
+    fn reset(&mut self) {
         self.tasks.clear();
         self.active = false;
         self.waited_time = 0.0;
+    }
+
+    fn change_speed(&mut self, speed: Speed) {
+        self.speed = speed;
     }
 }
 
@@ -86,16 +119,9 @@ pub struct App {
 
 impl App {
     pub fn new(gl: GlGraphics) -> App {
-        let (w, h);
+        let (w, h) = if DEBUG_GATE || DEBUG_ALGO { (6, 4) } else { (60, 40) };
+        let speed = if DEBUG_ALGO { Speed::VerySlow} else { Speed::Normal };
 
-        if DEBUG_GATE {
-            w = 6;
-            h = 4;
-        } else {
-            w = 60;
-            h = 40;
-        }
-        
         let maze = Rc::new(RefCell::new(OrthoMaze::new(w, h)));
         let highmap = Rc::new(RefCell::new(OrthoHighMap::new(w, h)));
         App {
@@ -105,7 +131,7 @@ impl App {
             highmap,
             last_carve_algo: None,
             next_carve_algo: None,
-            exec: Execution::new(0.4)
+            exec: Execution::new(speed)
         }
     }
 
@@ -116,7 +142,7 @@ impl App {
 
         let maze = self.maze.borrow();
         let algo = type_.create(&*maze);
-        
+
         self.last_carve_algo = Some(type_);
         self.exec.tasks.stack(algo);
 
@@ -129,14 +155,14 @@ impl App {
         if self.last_carve_algo.is_none() {
             self.reset_algo(type_.clone());
         }
-        
+
         self.next_carve_algo = Some(type_);
     }
 
     fn reset_maze(&mut self) {
         println!("[app] Reset maze");
         self.exec.reset();
-        
+
         let (w, h);
         {
             use grid::Within;
@@ -145,7 +171,7 @@ impl App {
             w = maze.grid().columns();
             h = maze.grid().lines();
         }
-        
+
         self.maze = Rc::new(RefCell::new(OrthoMaze::new(w, h)));
         self.highmap = Rc::new(RefCell::new(OrthoHighMap::new(w, h)));
 
@@ -168,7 +194,7 @@ impl App {
 
         let gl = &mut self.gl;
         let mr = &mut self.mr;
-        
+
         gl.draw(args.viewport(), |mut c, gl| {
             clear(color::WHITE, gl);
 
@@ -184,15 +210,18 @@ impl App {
         }
     }
 
-    fn commit_one_step(&mut self, dt: f64) {
+    fn commit_one_step(&mut self, dt: Second) {
         self.exec.waited_time += dt;
 
-        if self.exec.waited_time >= self.exec.idle_period {
-            let maze = self.maze.clone();
-            let highmap = self.highmap.clone();
-            let args = algo::base::Args { maze, highmap };
-            self.exec.tasks.run_step(args);
-            self.exec.waited_time %= self.exec.idle_period;
+        if self.exec.waited_time >= self.exec.speed.period() {
+            for _ in 0..self.exec.speed.batch() {
+                let maze = self.maze.clone();
+                let highmap = self.highmap.clone();
+                let args = algo::base::Args { maze, highmap };
+                self.exec.tasks.run_step(args);
+            }
+    
+            self.exec.waited_time %= self.exec.speed.period();
         }
     }
 
@@ -211,7 +240,7 @@ impl App {
     }
 
     pub fn button_pressed(
-        &mut self, 
+        &mut self,
         args: &Button,
         modkeys: &keyboard::ModifierKey)
     {
@@ -221,7 +250,7 @@ impl App {
 
                 if self.exec.active {
                     println!("[app] Resume algo");
-                    self.exec.waited_time = self.exec.idle_period;
+                    self.exec.waited_time = self.exec.speed.period();
                 } else {
                     println!("[app] Pause execution");
                     self.exec.waited_time = 0.0;
@@ -246,6 +275,12 @@ impl App {
             },
             Button::Keyboard(key) if key == Key::Backspace => {
                 self.reset_maze();
+            },
+            Button::Keyboard(key) if key == Key::PageUp => {
+                self.exec.change_speed(Speed::VerySlow);
+            },
+            Button::Keyboard(key) if key == Key::PageDown => {
+                self.exec.change_speed(Speed::Normal);
             },
             _ => ()
         }

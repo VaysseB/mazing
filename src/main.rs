@@ -7,7 +7,7 @@ extern crate opengl_graphics;
 use piston::window::WindowSettings;
 use piston::event_loop::{Events, EventSettings};
 use piston::input::{keyboard, RenderEvent, UpdateEvent, PressEvent};
-use glutin_window::GlutinWindow as Window;
+use glutin_window::GlutinWindow;
 use opengl_graphics::{ GlGraphics, OpenGL };
 
 
@@ -21,7 +21,7 @@ pub mod highmap;
 pub mod algo;
 
 
-use settings::DEBUG_GATE;
+use settings::{DEBUG_GATE, DEBUG_ALGO};
 
 
 fn main() {
@@ -29,7 +29,7 @@ fn main() {
 
     let win_size;
     
-    if DEBUG_GATE {
+    if DEBUG_GATE || DEBUG_ALGO {
         win_size = [500, 450];
     } else {
         win_size = [700, 550];
@@ -38,9 +38,10 @@ fn main() {
     let win_settings = WindowSettings::new("mazing", win_size)
         .opengl(opengl)
         .srgb(false)
+        .decorated(true)
         .exit_on_esc(true);
 
-    let mut window: Window = win_settings.build()
+    let mut window: GlutinWindow = win_settings.build()
         .expect("fail to build window");
 
     let mut app = app::App::new(GlGraphics::new(opengl));
