@@ -13,30 +13,6 @@ use super::maze::OrthoMaze;
 use super::highmap::OrthoHighMap;
 
 
-pub trait MazeRenderer {
-    fn render(
-        &mut self,
-        maze: Rc<RefCell<OrthoMaze>>,
-        highmap: Rc<RefCell<OrthoHighMap>>,
-        context: &Context,
-        gl: &mut GlGraphics);
-
-    fn toggle_gate(&mut self);
-    
-    fn toggle_highmap(&mut self);
-}
-
-
-pub struct StaticMazeRenderer {
-    cell_size: f64,
-    line_thickness: f64,
-    hori_line: Color,
-    vert_line: Color,
-    visible_gates: bool,
-    visible_highmap: bool
-}
-
-
 lazy_static! {
     static ref ROOT_COLORS : [Color; 5] = [
         color::hex("1B5E20"), // green
@@ -49,6 +25,40 @@ lazy_static! {
 
 
 const DIST_PER_COLOR : usize = 80;
+
+
+// ----------------------------------------------------------------------------
+
+
+pub trait MazeRenderer {
+    fn render(
+        &mut self,
+        maze: Rc<RefCell<OrthoMaze>>,
+        highmap: Rc<RefCell<OrthoHighMap>>,
+        context: &Context,
+        gl: &mut GlGraphics);
+
+    fn toggle_gate(&mut self);
+    
+    fn toggle_highmap(&mut self);
+
+    fn distance_per_color(&mut self) -> usize;
+    fn set_distance_per_color(&mut self, dist: usize);
+}
+
+
+// ----------------------------------------------------------------------------
+
+
+pub struct StaticMazeRenderer {
+    cell_size: f64,
+    line_thickness: f64,
+    hori_line: Color,
+    vert_line: Color,
+    visible_gates: bool,
+    visible_highmap: bool,
+    dist_per_color: usize
+}
 
 
 impl StaticMazeRenderer {
@@ -77,7 +87,8 @@ impl StaticMazeRenderer {
             hori_line,
             vert_line,
             visible_gates: true,
-            visible_highmap: true
+            visible_highmap: true,
+            dist_per_color: DIST_PER_COLOR
         }
     }
 
@@ -107,9 +118,9 @@ impl StaticMazeRenderer {
     fn altitude_color(&self, altitude: usize) -> Color {
         use graphics::Colored;
         
-        let color_index = (altitude / DIST_PER_COLOR) % ROOT_COLORS.len();
+        let color_index = (altitude / self.dist_per_color) % ROOT_COLORS.len();
 
-        let size = DIST_PER_COLOR as f64;
+        let size = self.dist_per_color as f64;
         let advance = (altitude as f64 % size) / size;
         
         let tint = 0.4 + 1.2 * advance;
@@ -288,5 +299,13 @@ impl MazeRenderer for StaticMazeRenderer {
     
     fn toggle_highmap(&mut self) {
         self.visible_highmap = !self.visible_highmap;
+    }
+    
+    fn distance_per_color(&mut self) -> usize {
+        self.dist_per_color
+    }
+    
+    fn set_distance_per_color(&mut self, dist: usize) {
+        self.dist_per_color = dist;
     }
 }

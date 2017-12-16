@@ -2,6 +2,7 @@ extern crate piston;
 extern crate graphics;
 extern crate opengl_graphics;
 
+use std;
 use std::rc::Rc;
 use std::cell::RefCell;
 
@@ -281,6 +282,20 @@ impl App {
             },
             Button::Keyboard(key) if key == Key::PageDown => {
                 self.exec.change_speed(Speed::Normal);
+            },
+            Button::Keyboard(key) if key == Key::Up => {
+                if modkeys.contains(keyboard::ModifierKey::CTRL) {
+                    let d = self.mr.distance_per_color();
+                    let d = d + std::cmp::max(1, d / 10);
+                    self.mr.set_distance_per_color(std::cmp::min(d, 200));
+                }
+            },
+            Button::Keyboard(key) if key == Key::Down => {
+                if modkeys.contains(keyboard::ModifierKey::CTRL) {
+                    let d = self.mr.distance_per_color();
+                    let d = d - std::cmp::max(1, d / 10);
+                    self.mr.set_distance_per_color(std::cmp::max(d, 5));
+                }
             },
             _ => ()
         }
