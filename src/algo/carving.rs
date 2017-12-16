@@ -272,7 +272,10 @@ impl Task<Args> for AldousBroder {
         }
 
         let next_addr = match self.pick_next(&*maze) {
-            Err(msg) => { self.log_action(msg); return Status::Done; }
+            Err(msg) => { 
+                self.log_action(msg); 
+                return Status::Aborted(msg.to_owned());
+            }
             Ok(value) => value
         };
 
@@ -412,7 +415,10 @@ impl Wilson {
         self.location.mark_visit(&mut *maze);
         
         self.location = match self.pick_rand_unvisited(&*maze) {
-            Err(msg) => { self.log_action(msg); return Status::Done; }
+            Err(msg) => { 
+                self.log_action(msg); 
+                return Status::Aborted(msg.to_owned());
+            }
             Ok(value) => value
         };
         
@@ -443,7 +449,10 @@ impl Task<Args> for Wilson {
         }
 
         let next_addr = match self.pick_next(&*maze) {
-            Err(msg) => { self.log_action(msg); return Status::Done; }
+            Err(msg) => { 
+                self.log_action(msg); 
+                return Status::Aborted(msg.to_owned());
+            }
             Ok(value) => value
         };
 

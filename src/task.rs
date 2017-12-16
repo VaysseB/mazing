@@ -6,7 +6,8 @@ use super::settings::DEBUG_ALGO;
 #[derive(Debug, PartialEq)]
 pub enum Status {
     Done,
-    Continuing
+    Continuing,
+    Aborted(String)
 }
 
 
@@ -41,26 +42,37 @@ impl<T> Executor<T> {
     pub fn clear(&mut self) {
         self.stack.clear();
     }
+    
+    
+    fn do_exec(&mut self, mut args: &mut T) -> Status {
+        let maybe_status = self.execute_task(&mut args);
+        if let Some(status) = maybe_status {
+            match status {
+                Status::Done => { self.stack.pop_front(); }
+                Status::Aborted(_) => { self.stack.pop_front(); }
+                Status::Continuing => ()
+            }
+            status
+        } else {
+            Status::Done
+        }
+    }
+
 
     pub fn run(&mut self, mut args: T) {
-        while !self.stack.is_empty() {
-            let maybe_status = self.execute_task(&mut args);
-            if maybe_status == Some(Status::Done) {
-                self.stack.pop_front();
+        'all: while !self.stack.is_empty() {
+            if let Status::Aborted(_) = self.do_exec(&mut args) {
+                break 'all;
             }
         }
     }
 
     pub fn run_task(&mut self, mut args: T) {
-        while self.execute_task(&mut args) == Some(Status::Continuing) {}
-        self.stack.pop_front();
+        while self.do_exec(&mut args) == Status::Continuing {}
     }
 
     pub fn run_step(&mut self, mut args: T) {
-        let maybe_status = self.execute_task(&mut args);
-        if maybe_status == Some(Status::Done) {
-            self.stack.pop_front();
-        }
+        self.do_exec(&mut args);
     }
 
     fn execute_task(&mut self, mut args: &mut T) -> Option<Status> {
@@ -71,8 +83,13 @@ impl<T> Executor<T> {
             
             Self::try_log(task, task.action());
             
-            if status == Status::Done {
-                Self::log(task, "Done");
+            match status {
+                Status::Done => Self::log(task, "Done"),
+                Status::Aborted(ref why) => {
+                    let msg = format!("Aborted. {}", why);
+                    Self::log(task, &msg);
+                }
+                Status::Continuing => ()
             }
             
             Some(status)
