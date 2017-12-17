@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::borrow::Cow;
 
 use super::settings::DEBUG_ALGO;
 
@@ -16,10 +17,10 @@ pub trait Task<T> {
     fn execute_one(&mut self, args: &mut T) -> Status;
 
     // Message to use before execution
-    fn context(&self) -> Option<&String> { None }
+    fn context<'a>(&'a self) -> Option<Cow<'a, str>> { None }
     
     // Message to use after execution
-    fn action(&self) -> Option<&String> { None }
+    fn action<'a>(&'a self) -> Option<Cow<'a, str>> { None }
 }
 
 
@@ -102,10 +103,13 @@ impl<T> Executor<T> {
         println!("[{}] {}", task.name(), msg);
     }
 
-    fn try_log(task: &Box<Task<T>>, msg: Option<&String>) {
+    fn try_log<'a>(task: &Box<Task<T>>, msg: Option<Cow<'a, str>>) {
         if DEBUG_ALGO {
             if let Some(msg) = msg {
-                Self::log(task, msg);
+                match msg {
+                    Cow::Borrowed(text) => Self::log(task, text),
+                    Cow::Owned(text) => Self::log(task, &text),
+                }
             }
         }
     }

@@ -1,5 +1,8 @@
 use std;
+use std::borrow::Cow;
 use std::collections::VecDeque;
+
+
 use super::super::grid::Address;
 use super::super::maze::WithinOrthoMaze;
 use super::super::task::{Task, Status};
@@ -34,8 +37,8 @@ impl Task<Args> for DijkstraWalk {
         "DijkstraWalk"
     }
 
-    fn action<'t>(&'t self) -> Option<&'t String> {
-        Some(&self.action)
+    fn action<'t>(&'t self) -> Option<Cow<'t, str>> {
+        Some(Cow::Borrowed(&self.action))
     }
 
     fn execute_one(&mut self, args: &mut Args) -> Status {
