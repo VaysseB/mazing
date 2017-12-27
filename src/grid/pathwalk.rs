@@ -4,27 +4,26 @@ use std::iter::Iterator;
 use super::{Grid, Localisable, Loc};
 
 
-pub struct Walk<'m, T: 'm> {
-    // TODO: if another walk is required, adds an enum as member here
+pub struct ZWalk<'m, T: 'm> {
     i: usize,
     limit: usize,
     grid: &'m Grid<T>
 }
 
 
-impl<T> Grid<T> {
-    pub fn z_walk<'m>(&'m self) -> Walk<'m, T> {
-        let limit = self.columns() * self.lines();
-        Walk {
+impl<'m, T: 'm> ZWalk<'m, T> {
+    pub fn new<'z>(grid: &'z Grid<T>) -> ZWalk<'z, T> {
+        let limit = grid.columns() * grid.lines();
+        ZWalk {
             i: 0,
             limit,
-            grid: self
+            grid
         }
     }
 }
 
 
-impl<'m, T: 'm> Iterator for Walk<'m, T> {
+impl<'m, T: 'm> Iterator for ZWalk<'m, T> {
     type Item = Pos<'m, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -77,8 +76,8 @@ mod tests {
     fn z_walk_is_possible() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let mut walk = grid.z_walk();
-        assert!(walk.next().is_some());
+        let mut zwalk = ZWalk::new(&grid);
+        assert!(zwalk.next().is_some());
     }
     
     
@@ -86,8 +85,8 @@ mod tests {
     fn z_walk_ends() {
         let init_value = 1;
         let grid = Grid::new_from_copy(0, 0, &init_value);
-        let mut walk = grid.z_walk();
-        assert!(walk.next().is_none());
+        let mut zwalk = ZWalk::new(&grid);
+        assert!(zwalk.next().is_none());
     }
     
     
@@ -107,7 +106,7 @@ mod tests {
 
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        for pos in grid.z_walk() {
+        for pos in ZWalk::new(&grid) {
             let dpos = DummyPos(pos.column(), pos.line());
             let expected_pos = expected_path.pop_front()
                 .expect("path is not finished");
@@ -120,8 +119,8 @@ mod tests {
     fn walk_is_localizable() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let mut walk = grid.z_walk();
-        let pos = walk.next().expect("position exists");
+        let mut zwalk = ZWalk::new(&grid);
+        let pos = zwalk.next().expect("position exists");
         let _loc = pos.to_loc();
     }
 }
