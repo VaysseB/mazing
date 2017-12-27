@@ -1,9 +1,15 @@
-#![allow(unused_imports)]
-
-
 #[derive(Debug, PartialEq, Clone)]
 pub enum Way {
     Up,
+    Down,
+    Left,
+    Right
+}
+
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum Border {
+    Top,
     Down,
     Left,
     Right
@@ -17,7 +23,7 @@ mod pathwalk;
 pub use self::pathwalk::ZWalk;
 
 mod freewalk;
-pub use self::freewalk::FreeWalk;
+pub use self::freewalk::OrthoFreeWalk;
 
 mod location;
 pub use self::location::{Loc, Localisable};

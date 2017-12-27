@@ -1,5 +1,9 @@
+extern crate rand;
+
+
 pub mod grid;
 pub mod maze;
+pub mod algo;
 
 
 fn main() {

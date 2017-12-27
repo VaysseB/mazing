@@ -1,16 +1,20 @@
+use std::rc::Rc;
+
+
 use super::{Grid, Localisable, Loc, Way};
 
 
-pub struct FreeWalk<'m, T: 'm> {
+pub struct OrthoFreeWalk<T> {
     column: usize,
     line: usize,
-    grid: &'m Grid<T>
+    grid: Rc<Grid<T>>
 }
 
 
-impl<'m, T: 'm> FreeWalk<'m, T> {
-    pub fn new<'z>(grid: &'z Grid<T>) -> FreeWalk<'z, T> {
-        FreeWalk {
+impl<T> OrthoFreeWalk<T> {
+    pub fn new(grid: &Rc<Grid<T>>) -> OrthoFreeWalk<T> {
+        let grid = grid.clone();
+        OrthoFreeWalk {
             column: 0,
             line: 0,
             grid
@@ -49,12 +53,21 @@ impl<'m, T: 'm> FreeWalk<'m, T> {
             Way::Right => self.column += 1
         }
     }
+
+
+    pub fn spawn_at(&mut self, column: usize, line: usize) {
+        // Right now, no bound checking (see `can_move`)
+        // See later if a `try_spawn_to -> bool' (with bound check)
+        // is useful
+        self.column = column;
+        self.line = line;
+    }
 }
 
 
-impl<'m, T: 'm> Localisable<'m, T> for FreeWalk<'m, T> {
-    fn to_loc(&self) -> Loc<'m, T> {
-        Loc::from_coordinates(self.column, self.line, self.grid)
+impl<T> Localisable<T> for OrthoFreeWalk<T> {
+    fn to_loc(&mut self) -> Loc<T> {
+        Loc::from_coordinates(self.column, self.line, &mut self.grid)
     }
 }
 
@@ -68,7 +81,7 @@ mod tests {
     const NB_LINES   : usize = 5;
 
 
-    fn assert_pos<T>(walker: &FreeWalk<T>, pos: &[usize; 2]) {
+    fn assert_pos<T>(walker: &OrthoFreeWalk<T>, pos: &[usize; 2]) {
         assert_eq!(walker.column(), pos[0]);
         assert_eq!(walker.line(), pos[1]);
     }
@@ -78,7 +91,8 @@ mod tests {
     fn freewalking_at_origin_can_move_down() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let walker = FreeWalk::new(&grid);
+        let grid = Rc::new(grid);
+        let walker = OrthoFreeWalk::new(&grid);
         assert!(walker.can_move(Way::Down));
     }
 
@@ -87,7 +101,8 @@ mod tests {
     fn freewalking_at_origin_can_move_right() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let walker = FreeWalk::new(&grid);
+        let grid = Rc::new(grid);
+        let walker = OrthoFreeWalk::new(&grid);
         assert!(walker.can_move(Way::Right));
     }
 
@@ -96,7 +111,8 @@ mod tests {
     fn freewalking_at_origin_can_not_move_up() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let walker = FreeWalk::new(&grid);
+        let grid = Rc::new(grid);
+        let walker = OrthoFreeWalk::new(&grid);
         assert!(!walker.can_move(Way::Up));
     }
 
@@ -105,7 +121,8 @@ mod tests {
     fn freewalking_at_origin_can_not_move_left() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let walker = FreeWalk::new(&grid);
+        let grid = Rc::new(grid);
+        let walker = OrthoFreeWalk::new(&grid);
         assert!(!walker.can_move(Way::Left));
     }
 
@@ -114,7 +131,8 @@ mod tests {
     fn freewalking_moves_to_right() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let mut walker = FreeWalk::new(&grid);
+        let grid = Rc::new(grid);
+        let mut walker = OrthoFreeWalk::new(&grid);
         assert_pos(&walker, &[0, 0]);
         walker.step_to(Way::Right);
         assert_pos(&walker, &[1, 0]);
@@ -125,7 +143,8 @@ mod tests {
     fn freewalking_moves_to_down() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let mut walker = FreeWalk::new(&grid);
+        let grid = Rc::new(grid);
+        let mut walker = OrthoFreeWalk::new(&grid);
         assert_pos(&walker, &[0, 0]);
         walker.step_to(Way::Down);
         assert_pos(&walker, &[0, 1]);
@@ -136,7 +155,8 @@ mod tests {
     fn freewalking_moves_to_up() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let mut walker = FreeWalk::new(&grid);
+        let grid = Rc::new(grid);
+        let mut walker = OrthoFreeWalk::new(&grid);
         walker.step_to(Way::Down);
         assert_pos(&walker, &[0, 1]);
         walker.step_to(Way::Up);
@@ -148,7 +168,8 @@ mod tests {
     fn freewalking_moves_to_left() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let mut walker = FreeWalk::new(&grid);
+        let grid = Rc::new(grid);
+        let mut walker = OrthoFreeWalk::new(&grid);
         walker.step_to(Way::Right);
         assert_pos(&walker, &[1, 0]);
         walker.step_to(Way::Left);
@@ -160,7 +181,8 @@ mod tests {
     fn walker_is_localizable() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let walker = FreeWalk::new(&grid);
+        let grid = Rc::new(grid);
+        let mut walker = OrthoFreeWalk::new(&grid);
         let _loc = walker.to_loc();
     }
 }

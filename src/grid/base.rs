@@ -95,15 +95,38 @@ impl<T> Grid<T> {
     }
 
 
-    pub fn at_loc<'m>(&'m self, loc: &Loc<'m, T>) -> &'m T {
+    pub fn at_mut<'m>(&'m mut self, column: usize, line: usize) -> &'m mut T {
+        let spos = self._storage_pos(column, line)
+            .expect("coordinates exists");
+        &mut self.cells[spos]
+    }
+
+    
+    pub fn try_at_mut<'m>(&'m mut self, column: usize, line: usize) -> Option<&'m mut T> {
+        self._storage_pos(column, line)
+            .map_or(None, move |spos| self.cells.get_mut(spos))
+    }
+
+
+    pub fn at_loc<'m>(&'m self, loc: &Loc<T>) -> &'m T {
         let spos = loc.storage_pos();
         &self.cells[spos]
     }
     
     
-    pub fn try_at_loc<'m>(&'m self, loc: &Loc<'m, T>) -> Option<&'m T> {
+    pub fn try_at_loc<'m>(&'m self, loc: &Loc<T>) -> Option<&'m T> {
         let spos = loc.storage_pos();
         self.cells.get(spos)
+    }
+
+
+    pub fn direct_at_mut<'m>(&'m mut self, spos: usize) -> &'m mut T {
+        &mut self.cells[spos]
+    }
+    
+    
+    pub fn try_direct_at_mut<'m>(&'m mut self, spos: usize) -> Option<&'m mut T> {
+        self.cells.get_mut(spos)
     }
 }
 
@@ -111,6 +134,8 @@ impl<T> Grid<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use std::rc::Rc;
 
     const NB_COLUMNS : usize = 4;
     const NB_LINES   : usize = 5;
@@ -186,6 +211,10 @@ mod tests {
         assert_eq!(grid.at(NB_COLUMNS - 1, NB_LINES - 1), &last);
     }
 
+
+    // ---
+    // Read-only part
+
     
     #[test]
     #[should_panic]
@@ -204,14 +233,7 @@ mod tests {
 
     
     #[test]
-    fn try_access_value_inside_column_range() {
-        let grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
-        assert_eq!(grid.try_at(0, 0), Some(&0));
-    }
-
-    
-    #[test]
-    fn try_access_value_inside_line_range() {
+    fn try_access_value_inside_range() {
         let grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
         assert_eq!(grid.try_at(0, 0), Some(&0));
     }
@@ -234,7 +256,8 @@ mod tests {
     #[test]
     fn access_with_location_within_range() {
         let grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
-        let loc = Loc::from_coordinates(0, 0, &grid);
+        let mut grid = Rc::new(grid);
+        let loc = Loc::from_coordinates(0, 0, &mut grid);
         assert_eq!(loc.value(), &0);
     }
 
@@ -243,7 +266,8 @@ mod tests {
     #[should_panic]
     fn panic_if_access_with_location_outside_range() {
         let grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
-        let loc = Loc::from_coordinates(NB_COLUMNS, NB_LINES, &grid);
+        let mut grid = Rc::new(grid);
+        let loc = Loc::from_coordinates(NB_COLUMNS, NB_LINES, &mut grid);
         assert_eq!(loc.value(), &0);
     }
     
@@ -251,7 +275,8 @@ mod tests {
     #[test]
     fn try_access_with_location_within_range() {
         let grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
-        let loc = Loc::from_coordinates(0, 0, &grid);
+        let mut grid = Rc::new(grid);
+        let loc = Loc::from_coordinates(0, 0, &mut grid);
         assert_eq!(loc.maybe_value(), Some(&0));
     }
     
@@ -259,7 +284,91 @@ mod tests {
     #[test]
     fn try_access_with_location_outside_range() {
         let grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
-        let loc = Loc::from_coordinates(NB_COLUMNS, NB_LINES, &grid);
+        let mut grid = Rc::new(grid);
+        let loc = Loc::from_coordinates(NB_COLUMNS, NB_LINES, &mut grid);
         assert_eq!(loc.maybe_value(), None);
+    }
+
+    // ---
+    // Mutation part
+
+    
+    #[test]
+    #[should_panic]
+    fn panic_if_mutate_value_outside_column_range() {
+        let mut grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
+        grid.at_mut(NB_COLUMNS, 0);
+    }
+
+    
+    #[test]
+    #[should_panic]
+    fn panic_if_mutate_value_outside_line_range() {
+        let mut grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
+        grid.at_mut(0, NB_LINES);
+    }
+
+    
+    #[test]
+    fn try_mutate_value_inside_range() {
+        let mut grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
+        assert_eq!(grid.try_at(0, 0), Some(&0));
+        grid.try_at_mut(0, 0).map(|var| *var = 1);
+        assert_eq!(grid.try_at(0, 0), Some(&1));
+    }
+
+    
+    #[test]
+    fn try_mutate_value_beyond_column_range() {
+        let mut grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
+        assert_eq!(grid.try_at_mut(NB_COLUMNS, 0), None);
+    }
+
+    
+    #[test]
+    fn try_mutate_value_beyond_line_range() {
+        let mut grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
+        assert_eq!(grid.try_at_mut(0, NB_LINES), None);
+    }
+
+    
+    #[test]
+    fn mutate_with_location_within_range() {
+        let grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
+        let mut grid = Rc::new(grid);
+        let mut loc = Loc::from_coordinates(0, 0, &mut grid);
+        assert_eq!(loc.value(), &0);
+        *loc.value_mut() = 1;
+        assert_eq!(loc.value(), &1);
+    }
+
+    
+    #[test]
+    #[should_panic]
+    fn panic_if_mutate_ccess_with_location_outside_range() {
+        let grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
+        let mut grid = Rc::new(grid);
+        let mut loc = Loc::from_coordinates(NB_COLUMNS, NB_LINES, &mut grid);
+        *loc.value_mut() = 1;
+    }
+    
+    
+    #[test]
+    fn try_mutate_with_location_within_range() {
+        let grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
+        let mut grid = Rc::new(grid);
+        let mut loc = Loc::from_coordinates(0, 0, &mut grid);
+        assert_eq!(loc.maybe_value(), Some(&0));
+        loc.maybe_value_mut().map(|var| *var = 1);
+        assert_eq!(loc.maybe_value(), Some(&1));
+    }
+    
+    
+    #[test]
+    fn try_mutate_with_location_outside_range() {
+        let grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
+        let mut grid = Rc::new(grid);
+        let mut loc = Loc::from_coordinates(NB_COLUMNS, NB_LINES, &mut grid);
+        assert_eq!(loc.maybe_value_mut(), None);
     }
 }

@@ -1,4 +1,7 @@
-use super::grid::{Grid, ZWalk, FreeWalk};
+use std::rc::Rc;
+
+
+use grid::{Grid, Way, Loc, ZWalk, OrthoFreeWalk};
 
 
 pub struct MazeCell {
@@ -24,8 +27,14 @@ impl Default for MazeCell {
 //-----------------------------------------------------------------------------
 
 
+pub type OrthoLoc<'a> = Loc<'a, MazeCell>;
+
+
+//-----------------------------------------------------------------------------
+
+
 pub struct OrthoMaze {
-    grid: Grid<MazeCell>,
+    grid: Rc<Grid<MazeCell>>,
     current: Option<usize>,
     group: Vec<usize>
 }
@@ -34,18 +43,26 @@ pub struct OrthoMaze {
 impl OrthoMaze {
     pub fn new(w: usize, h: usize) -> OrthoMaze {
         OrthoMaze { 
-            grid: Grid::new(w, h),
+            grid: Rc::new(Grid::new(w, h)),
             current: None,
             group: Vec::new()
         }
     }
 
-    pub fn zwalk<'m>(&'m self) -> ZWalk<'m, MazeCell> {
+    
+    pub fn zwalk(&self) -> ZWalk<MazeCell> {
         ZWalk::new(&self.grid)
     }
 
-    pub fn freewalk<'m>(&'m self) -> FreeWalk<'m, MazeCell> {
-        FreeWalk::new(&self.grid)
+    
+    pub fn freewalk(&self) -> OrthoFreeWalk<MazeCell> {
+        OrthoFreeWalk::new(&self.grid)
+    }
+   
+    
+    pub fn carve(&mut self, _loc: &OrthoLoc, _gateway: &Way) 
+        -> Result<(), String> {
+        Ok(())
     }
 }
 
