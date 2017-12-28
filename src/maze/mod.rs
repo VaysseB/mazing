@@ -1,2 +1,2 @@
 mod orthomaze;
-pub use self::orthomaze::{OrthoMaze, OrthoLoc};
+pub use self::orthomaze::OrthoMaze;

@@ -1,4 +1,4 @@
-use grid::{Grid, Way, Loc, ZWalk, OrthoFreeWalk};
+use grid::{Grid, Way, Border, Loc, ZWalk, OrthoFreeWalk};
 
 
 pub struct MazeCell {
@@ -24,7 +24,36 @@ impl Default for MazeCell {
 //-----------------------------------------------------------------------------
 
 
-pub type OrthoLoc = Loc;
+bitflags! {
+    pub struct Gates: usize {
+        const TOP   = 0b00001;
+        const DOWN  = 0b00010;
+        const LEFT  = 0b00100;
+        const RIGHT = 0b01000;
+    }
+}
+
+
+impl Gates {
+    pub fn to_way(gateway: &Way) -> Gates {
+        match gateway {
+            &Way::Up => Gates::TOP,
+            &Way::Down => Gates::DOWN,
+            &Way::Left => Gates::LEFT,
+            &Way::Right => Gates::RIGHT,
+        }
+    }
+
+   
+    pub fn can_move(&self, gateway: &Way) -> bool {
+        self.contains(Self::to_way(gateway))
+    }
+
+
+    pub fn can_move_all(&self, gateways: &[Way]) -> bool {
+        gateways.iter().all(|ref gtw| self.can_move(gtw))
+    }
+}
 
 
 //-----------------------------------------------------------------------------
@@ -57,7 +86,7 @@ impl OrthoMaze {
     }
 
 
-    pub fn carve(&mut self, loc: &OrthoLoc, gateway: &Way) 
+    pub fn carve(&mut self, loc: &Loc, gateway: &Way) 
         -> Result<(), String>
     {
         let res = match gateway {
@@ -80,6 +109,34 @@ impl OrthoMaze {
             _ => None
         };
         res.ok_or("invalid carving".to_owned())
+    }
+
+
+    pub fn gates_at(&self, loc: &Loc) -> Gates {
+        let mut gates = Gates{ bits: 0 };
+        
+        self.grid.try_at_loc(loc).map(|ocell|
+            if ocell.down_gate_open {
+                gates.insert(Gates::DOWN);
+            } else if ocell.right_gate_open {
+                gates.insert(Gates::RIGHT);
+            });
+        
+        if !loc.is_close_to(Border::Top) {
+            self.grid.try_at(loc.column(), loc.line() - 1)
+                .map(|ocell| if ocell.down_gate_open {
+                    gates.insert(Gates::TOP);
+                });
+        }
+        
+        if !loc.is_close_to(Border::Left) {
+            self.grid.try_at(loc.column() - 1, loc.line())
+                .map(|ocell| if ocell.right_gate_open {
+                    gates.insert(Gates::LEFT);
+                });
+        }
+        
+        gates
     }
 }
 

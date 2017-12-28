@@ -1,4 +1,6 @@
 extern crate rand;
+#[macro_use]
+extern crate bitflags;
 
 
 pub mod grid;
