@@ -1,3 +1,4 @@
+export RUSTFLAGS="$RUSTFLAGS -A unused_imports"
 
 function build {
     clear
@@ -10,16 +11,16 @@ function test_it {
     cargo test
 }
 
-function build_run {
+function build_test {
     build
     [ $? -eq 0 ] && test_it
 }
 
 #
 
-build_run
+build_test
 
 while true
 do
-    inotifywait --recursive --event modify ./src 2>/dev/null && build_run
+    inotifywait --recursive --event modify ./src 2>/dev/null && build_test
 done

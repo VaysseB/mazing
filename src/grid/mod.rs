@@ -26,4 +26,4 @@ mod freewalk;
 pub use self::freewalk::OrthoFreeWalk;
 
 mod location;
-pub use self::location::{Loc, Localisable};
+pub use self::location::{Loc, Localisable, LocGenerator};

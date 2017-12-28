@@ -1,89 +1,90 @@
-use std::rc::Rc;
-
-
 use super::{Grid, Border};
 use super::pathwalk;
 use super::freewalk;
 
 
-pub struct Loc<'m, T: 'm> {
-    spos: usize,
-    grid: &'m mut Rc<Grid<T>>
+pub struct LocGenerator {
+    pub columns: usize,
+    pub lines: usize
 }
 
 
-impl<'m, T: 'm> Loc<'m, T> {
-    pub fn from_storage_pos(spos: usize, grid: &mut Rc<Grid<T>>) -> Loc<T> {
-        Loc { spos, grid }
+impl LocGenerator {
+    pub fn create_from_storage_pos(&self, spos: usize) -> Loc {
+        let line = spos / self.columns;
+        let column = spos - line * self.columns;
+        Loc { 
+            spos, column, line,
+            nb_columns: self.columns,
+            nb_lines: self.lines,
+        }
     }
     
     
-    pub fn from_coordinates(column: usize, line: usize, grid: &mut Rc<Grid<T>>) -> Loc<T> {
-        let spos = column + line * grid.columns();
-        Loc { spos, grid }
+    pub fn create_from_coordinates(&self, column: usize, line: usize) -> Loc {
+        let spos = column + line * self.columns;
+        Loc { 
+            spos, column, line,
+            nb_columns: self.columns,
+            nb_lines: self.lines,
+        }
     }
 
 
+    pub fn columns(&self) -> usize {
+        self.columns
+    }
+
+
+    pub fn lines(&self) -> usize {
+        self.lines
+    }
+}
+
+
+pub struct Loc {
+    spos: usize,
+    column: usize,
+    line: usize,
+    nb_columns: usize,
+    nb_lines: usize
+}
+
+
+impl Loc {
     pub fn storage_pos(&self) -> usize {
         self.spos
     }
 
 
     pub fn column(&self) -> usize {
-        self.spos % self.grid.columns()
+        self.column
     }
     
     
     pub fn line(&self) -> usize {
-        self.spos / self.grid.columns()
+        self.line
     }
 
 
     pub fn coordinates(&self) -> (usize, usize) {
-        (self.column(), self.line())
-    }
-
-    
-    pub fn value<'z>(&'z self) -> &'z T {
-        self.grid.at_loc(self)
-    }
-
-    
-    pub fn maybe_value<'z>(&'z self) -> Option<&'z T> {
-        self.grid.try_at_loc(self)
-    }
-
-    
-    pub fn value_mut<'z>(&'z mut self) -> &'z mut T {
-        let spos = self.storage_pos();
-        let grid = Rc::get_mut(&mut self.grid)
-            .expect("no-one has ownership over maze's grid");
-        grid.direct_at_mut(spos)
-    }
-
-    
-    pub fn maybe_value_mut<'z>(&'z mut self) -> Option<&'z mut T> {
-        let spos = self.storage_pos();
-        let grid = Rc::get_mut(&mut self.grid)
-            .expect("no-one has ownership over maze's grid");
-        grid.try_direct_at_mut(spos)
+        (self.column, self.line)
     }
 
     
     pub fn is_close_to(&self, border: Border) -> bool {
-        let (column, line) = self.coordinates();
         match border {
-            Border::Top => line == 0,
-            Border::Down => line + 1 >= self.grid.lines(),
-            Border::Left => column == 0,
-            Border::Right => column + 1 >= self.grid.columns(),
+            Border::Top => self.line == 0,
+            Border::Down => self.line + 1 >= self.nb_lines,
+            Border::Left => self.column == 0,
+            Border::Right => self.column + 1 >= self.nb_columns,
         }
     }
 }
 
 
-pub trait Localisable<T> {
-    fn to_loc(&mut self) -> Loc<T>;
+pub trait Localisable {
+    fn to_loc(&self) -> Loc;
 }
 
 
