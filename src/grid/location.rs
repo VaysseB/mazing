@@ -1,57 +1,74 @@
+use std::rc::{Rc, Weak};
+use std::cell::RefCell;
+
 use super::{Grid, Border};
 use super::pathwalk;
 use super::freewalk;
 
 
-pub struct LocGenerator {
-    pub columns: usize,
-    pub lines: usize
+pub struct LocGenerator<T> {
+    grid: Weak<RefCell<Grid<T>>>
 }
 
 
-impl LocGenerator {
-    pub fn create_from_storage_pos(&self, spos: usize) -> Loc {
-        let line = spos / self.columns;
-        let column = spos - line * self.columns;
-        Loc { 
-            spos, column, line,
-            nb_columns: self.columns,
-            nb_lines: self.lines,
-        }
+impl<T> LocGenerator<T> {
+    pub fn new(grid: &Rc<RefCell<Grid<T>>>) -> LocGenerator<T> {
+        let grid = Rc::downgrade(&grid);
+        LocGenerator { grid }
     }
     
     
-    pub fn create_from_coordinates(&self, column: usize, line: usize) -> Loc {
-        let spos = column + line * self.columns;
-        Loc { 
-            spos, column, line,
-            nb_columns: self.columns,
-            nb_lines: self.lines,
-        }
+    pub fn create_from_storage_pos(&self, spos: usize) -> Loc<T> {
+        // TODO define behavior if grid is dropped
+        let grid_rc = self.grid.upgrade().expect("grid still exists");
+        let line = spos / grid_rc.borrow().columns();
+        let column = spos - line * grid_rc.borrow().columns();
+        let grid = self.grid.clone();
+        Loc { spos, column, line, grid }
+    }
+    
+    
+    pub fn create_from_coordinates(&self, column: usize, line: usize) -> Loc<T> {
+        // TODO define behavior if grid is dropped
+        let grid_rc = self.grid.upgrade().expect("grid still exists");
+        let spos = column + line * grid_rc.borrow().columns();
+        let grid = self.grid.clone();
+        Loc { spos, column, line, grid }
     }
 
 
     pub fn columns(&self) -> usize {
-        self.columns
+        let column;
+        {
+            // TODO define behavior if grid is dropped
+            let grid_rc = self.grid.upgrade().expect("grid still exists");
+            column = grid_rc.borrow().columns();
+        }
+        column
     }
 
 
     pub fn lines(&self) -> usize {
-        self.lines
+        let line;
+        {
+            // TODO define behavior if grid is dropped
+            let grid_rc = self.grid.upgrade().expect("grid still exists");
+            line = grid_rc.borrow().lines();
+        }
+        line
     }
 }
 
 
-pub struct Loc {
+pub struct Loc<T> {
     spos: usize,
     column: usize,
     line: usize,
-    nb_columns: usize,
-    nb_lines: usize
+    grid: Weak<RefCell<Grid<T>>>
 }
 
 
-impl Loc {
+impl<T> Loc<T> {
     pub fn storage_pos(&self) -> usize {
         self.spos
     }
@@ -73,18 +90,20 @@ impl Loc {
 
     
     pub fn is_close_to(&self, border: Border) -> bool {
+        // TODO define behavior if grid is dropped
+        let grid_rc = self.grid.upgrade().expect("grid still exists");
         match border {
             Border::Top => self.line == 0,
-            Border::Down => self.line + 1 >= self.nb_lines,
+            Border::Down => self.line + 1 >= grid_rc.borrow().lines(),
             Border::Left => self.column == 0,
-            Border::Right => self.column + 1 >= self.nb_columns,
+            Border::Right => self.column + 1 >= grid_rc.borrow().columns(),
         }
     }
 }
 
 
-pub trait Localisable {
-    fn to_loc(&self) -> Loc;
+pub trait Localisable<T> {
+    fn to_loc(&self) -> Loc<T>;
 }
 
 

@@ -1,7 +1,7 @@
 use rand;
 use rand::Rng;
 
-use maze::OrthoMaze;
+use maze::{OrthoMaze, OrthoLoc};
 use grid::{Loc, Way, Localisable, Border};
 
 
@@ -20,7 +20,7 @@ impl Execution {
     }
 
 
-    pub fn carve(&mut self, loc: Loc, gateway: Way, why: &str) -> Result<(), String> {
+    pub fn carve(&mut self, loc: OrthoLoc, gateway: Way, why: &str) -> Result<(), String> {
         self.maze.carve(&loc, &gateway)?;
         self.history.push(why.to_owned());
         println!("At {}:{}, {}", loc.column(), loc.line(), why);
@@ -86,7 +86,7 @@ mod tests {
         let bt = BinaryTree();
         assert_eq!(bt.carve(&mut exec), Ok(()));
 
-        let locgen = exec.maze.grid.loc_generator();
+        let locgen = exec.maze.loc_generator();
         
         // right border should be carved down and left
         let access_tr = exec.maze.gates_at(

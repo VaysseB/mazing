@@ -3,15 +3,15 @@ use std::iter::Iterator;
 use super::{Loc, Localisable, LocGenerator};
 
 
-pub struct ZWalk {
+pub struct ZWalk<T> {
     i: usize,
     limit: usize,
-    locgen: LocGenerator
+    locgen: LocGenerator<T>
 }
 
 
-impl ZWalk {
-    pub fn new(locgen: LocGenerator) -> ZWalk {
+impl<T> ZWalk<T> {
+    pub fn new(locgen: LocGenerator<T>) -> ZWalk<T> {
         let limit = locgen.columns() * locgen.lines();
         ZWalk {
             i: 0,
@@ -22,8 +22,8 @@ impl ZWalk {
 }
 
 
-impl Iterator for ZWalk {
-    type Item = Loc;
+impl<T> Iterator for ZWalk<T> {
+    type Item = Loc<T>;
 
     fn next<'z>(&'z mut self) -> Option<Self::Item> {
         if self.i >= self.limit {
@@ -39,6 +39,9 @@ impl Iterator for ZWalk {
 
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+    use std::cell::RefCell;
+
     use super::*;
     use super::super::Grid;
 
@@ -51,7 +54,9 @@ mod tests {
     fn z_walk_is_possible() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let mut zwalk = ZWalk::new(grid.loc_generator());
+        let grid = Rc::new(RefCell::new(grid));
+        let lc = LocGenerator::new(&grid);
+        let mut zwalk = ZWalk::new(lc);
         assert!(zwalk.next().is_some());
     }
     
@@ -60,7 +65,9 @@ mod tests {
     fn z_walk_ends() {
         let init_value = 1;
         let grid = Grid::new_from_copy(0, 0, &init_value);
-        let mut zwalk = ZWalk::new(grid.loc_generator());
+        let grid = Rc::new(RefCell::new(grid));
+        let lc = LocGenerator::new(&grid);
+        let mut zwalk = ZWalk::new(lc);
         assert!(zwalk.next().is_none());
     }
     
@@ -81,7 +88,9 @@ mod tests {
 
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        for pos in ZWalk::new(grid.loc_generator()) {
+        let grid = Rc::new(RefCell::new(grid));
+        let lc = LocGenerator::new(&grid);
+        for pos in ZWalk::new(lc) {
             let dpos = DummyPos(pos.column(), pos.line());
             let expected_pos = expected_path.pop_front()
                 .expect("path is not finished");
@@ -94,7 +103,9 @@ mod tests {
     fn walk_is_localizable() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let mut zwalk = ZWalk::new(grid.loc_generator());
-        let _loc : Loc = zwalk.next().expect("position exists");
+        let grid = Rc::new(RefCell::new(grid));
+        let lc = LocGenerator::new(&grid);
+        let mut zwalk = ZWalk::new(lc);
+        let _loc : Loc<_> = zwalk.next().expect("position exists");
     }
 }

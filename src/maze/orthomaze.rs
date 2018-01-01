@@ -1,4 +1,10 @@
-use grid::{Grid, Way, Border, Loc, ZWalk, OrthoFreeWalk};
+use std::rc::Rc;
+use std::cell::RefCell;
+
+use grid::{Grid, Way, Border, Loc, LocGenerator, ZWalk, OrthoFreeWalk};
+
+
+pub type OrthoLoc = Loc<MazeCell>;
 
 
 pub struct MazeCell {
@@ -34,24 +40,26 @@ bitflags! {
 }
 
 
-impl Gates {
-    pub fn to_way(gateway: &Way) -> Gates {
-        match gateway {
-            &Way::Up => Gates::TOP,
-            &Way::Down => Gates::DOWN,
-            &Way::Left => Gates::LEFT,
-            &Way::Right => Gates::RIGHT,
+impl<'a> Into<Gates> for &'a Way {
+    fn into(self) -> Gates {
+        match *self {
+            Way::Up => Gates::TOP,
+            Way::Down => Gates::DOWN,
+            Way::Left => Gates::LEFT,
+            Way::Right => Gates::RIGHT,
         }
     }
+}
 
    
+impl Gates {
     pub fn can_move(&self, gateway: &Way) -> bool {
-        self.contains(Self::to_way(gateway))
+        self.contains(gateway.into())
     }
 
 
     pub fn can_move_all(&self, gateways: &[Way]) -> bool {
-        gateways.iter().all(|ref gtw| self.can_move(gtw))
+        gateways.iter().all(|gtw| self.contains(gtw.into()))
     }
 }
 
@@ -60,7 +68,7 @@ impl Gates {
 
 
 pub struct OrthoMaze {
-    pub grid: Grid<MazeCell>,
+    pub grid: Rc<RefCell<Grid<MazeCell>>>,
     _current: Option<usize>,
     _group: Vec<usize>
 }
@@ -68,42 +76,48 @@ pub struct OrthoMaze {
 
 impl OrthoMaze {
     pub fn new(w: usize, h: usize) -> OrthoMaze {
+        let grid = Rc::new(RefCell::new(Grid::new(w, h)));
         OrthoMaze {
-            grid: Grid::new(w, h),
+            grid,
             _current: None,
             _group: Vec::new()
         }
     }
 
+    
+    pub fn loc_generator(&self) -> LocGenerator<MazeCell> {
+        LocGenerator::new(&self.grid)
+    }
+    
 
-    pub fn zwalk(&self) -> ZWalk {
-        ZWalk::new(self.grid.loc_generator())
+    pub fn zwalk(&self) -> ZWalk<MazeCell> {
+        ZWalk::new(self.loc_generator())
     }
 
 
-    pub fn freewalk(&self) -> OrthoFreeWalk {
-        OrthoFreeWalk::new(self.grid.loc_generator())
+    pub fn freewalk(&self) -> OrthoFreeWalk<MazeCell> {
+        OrthoFreeWalk::new(self.loc_generator())
     }
 
 
-    pub fn carve(&mut self, loc: &Loc, gateway: &Way) 
+    pub fn carve(&mut self, loc: &Loc<MazeCell>, gateway: &Way) 
         -> Result<(), String>
     {
         let res = match gateway {
-            &Way::Down if loc.line() + 1 <= self.grid.lines() => 
-                self.grid
+            &Way::Down if loc.line() + 1 <= self.grid.borrow().lines() => 
+                self.grid.borrow_mut()
                 .try_at_loc_mut(&loc)
                 .map(|ocell| ocell.down_gate_open = true),
-            &Way::Right if loc.column() + 1 <= self.grid.columns() => 
-                self.grid
+            &Way::Right if loc.column() + 1 <= self.grid.borrow().columns() => 
+                self.grid.borrow_mut()
                 .try_at_loc_mut(&loc)
                 .map(|ocell| ocell.right_gate_open = true),
             &Way::Up if loc.line() >= 1 => 
-                self.grid
+                self.grid.borrow_mut()
                 .try_at_mut(loc.column(), loc.line() - 1)
                 .map(|ocell| ocell.down_gate_open = true),
             &Way::Left if loc.column() >= 1 => 
-                self.grid
+                self.grid.borrow_mut()
                 .try_at_mut(loc.column() - 1, loc.line())
                 .map(|ocell| ocell.right_gate_open = true),
             _ => None
@@ -112,10 +126,10 @@ impl OrthoMaze {
     }
 
 
-    pub fn gates_at(&self, loc: &Loc) -> Gates {
+    pub fn gates_at(&self, loc: &Loc<MazeCell>) -> Gates {
         let mut gates = Gates{ bits: 0 };
         
-        self.grid.try_at_loc(loc).map(|ocell|
+        self.grid.borrow().try_at_loc(loc).map(|ocell|
             if ocell.down_gate_open {
                 gates.insert(Gates::DOWN);
             } else if ocell.right_gate_open {
@@ -123,14 +137,14 @@ impl OrthoMaze {
             });
         
         if !loc.is_close_to(Border::Top) {
-            self.grid.try_at(loc.column(), loc.line() - 1)
+            self.grid.borrow().try_at(loc.column(), loc.line() - 1)
                 .map(|ocell| if ocell.down_gate_open {
                     gates.insert(Gates::TOP);
                 });
         }
         
         if !loc.is_close_to(Border::Left) {
-            self.grid.try_at(loc.column() - 1, loc.line())
+            self.grid.borrow().try_at(loc.column() - 1, loc.line())
                 .map(|ocell| if ocell.right_gate_open {
                     gates.insert(Gates::LEFT);
                 });
