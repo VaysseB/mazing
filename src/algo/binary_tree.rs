@@ -1,7 +1,7 @@
 use rand;
 use rand::Rng;
 
-use maze::{OrthoMaze};
+use maze::OrthoMaze;
 use grid::{Way, Border};
 use algo::Execution;
 
