@@ -1,6 +1,6 @@
 use std::iter::Iterator;
 
-use super::{Loc, Localisable, LocGenerator};
+use super::{Loc, LocGenerator};
 
 
 pub struct ZWalk<T> {
@@ -39,8 +39,7 @@ impl<T> Iterator for ZWalk<T> {
 
 #[cfg(test)]
 mod tests {
-    use std::rc::Rc;
-    use std::cell::RefCell;
+    use std::sync::{Arc, Mutex};
 
     use super::*;
     use super::super::Grid;
@@ -54,7 +53,7 @@ mod tests {
     fn z_walk_is_possible() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let grid = Rc::new(RefCell::new(grid));
+        let grid = Arc::new(Mutex::new(grid));
         let lc = LocGenerator::new(&grid);
         let mut zwalk = ZWalk::new(lc);
         assert!(zwalk.next().is_some());
@@ -65,7 +64,7 @@ mod tests {
     fn z_walk_ends() {
         let init_value = 1;
         let grid = Grid::new_from_copy(0, 0, &init_value);
-        let grid = Rc::new(RefCell::new(grid));
+        let grid = Arc::new(Mutex::new(grid));
         let lc = LocGenerator::new(&grid);
         let mut zwalk = ZWalk::new(lc);
         assert!(zwalk.next().is_none());
@@ -88,7 +87,7 @@ mod tests {
 
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let grid = Rc::new(RefCell::new(grid));
+        let grid = Arc::new(Mutex::new(grid));
         let lc = LocGenerator::new(&grid);
         for pos in ZWalk::new(lc) {
             let dpos = DummyPos(pos.column(), pos.line());
@@ -103,7 +102,7 @@ mod tests {
     fn walk_is_localizable() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let grid = Rc::new(RefCell::new(grid));
+        let grid = Arc::new(Mutex::new(grid));
         let lc = LocGenerator::new(&grid);
         let mut zwalk = ZWalk::new(lc);
         let _loc : Loc<_> = zwalk.next().expect("position exists");

@@ -1,5 +1,5 @@
 use maze::{OrthoMaze, OrthoLoc};
-use grid::{Loc, Way};
+use grid::Way;
 
 
 pub struct Execution {

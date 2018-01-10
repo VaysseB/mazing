@@ -1,28 +1,26 @@
-use std::rc::{Rc, Weak};
-use std::cell::RefCell;
+use std::sync::{Arc, Weak, Mutex};
 
 use super::{Grid, Border};
-use super::pathwalk;
-use super::freewalk;
 
 
 pub struct LocGenerator<T> {
-    grid: Weak<RefCell<Grid<T>>>
+    grid: Weak<Mutex<Grid<T>>>
 }
 
 
 impl<T> LocGenerator<T> {
-    pub fn new(grid: &Rc<RefCell<Grid<T>>>) -> LocGenerator<T> {
-        let grid = Rc::downgrade(&grid);
+    pub fn new(grid: &Arc<Mutex<Grid<T>>>) -> LocGenerator<T> {
+        let grid = Arc::downgrade(&grid);
         LocGenerator { grid }
     }
     
     
     pub fn create_from_storage_pos(&self, spos: usize) -> Loc<T> {
         // TODO define behavior if grid is dropped
-        let grid_rc = self.grid.upgrade().expect("grid still exists");
-        let line = spos / grid_rc.borrow().columns();
-        let column = spos - line * grid_rc.borrow().columns();
+        let grid_arc = self.grid.upgrade().expect("grid still exists");
+        let grid_guard = grid_arc.lock().expect("nobody panics holding mutex");
+        let line = spos / grid_guard.columns();
+        let column = spos - line * grid_guard.columns();
         let grid = self.grid.clone();
         Loc { spos, column, line, grid }
     }
@@ -30,8 +28,9 @@ impl<T> LocGenerator<T> {
     
     pub fn create_from_coordinates(&self, column: usize, line: usize) -> Loc<T> {
         // TODO define behavior if grid is dropped
-        let grid_rc = self.grid.upgrade().expect("grid still exists");
-        let spos = column + line * grid_rc.borrow().columns();
+        let grid_arc = self.grid.upgrade().expect("grid still exists");
+        let grid_guard = grid_arc.lock().expect("nobody panics holding mutex");
+        let spos = column + line * grid_guard.columns();
         let grid = self.grid.clone();
         Loc { spos, column, line, grid }
     }
@@ -41,8 +40,9 @@ impl<T> LocGenerator<T> {
         let column;
         {
             // TODO define behavior if grid is dropped
-            let grid_rc = self.grid.upgrade().expect("grid still exists");
-            column = grid_rc.borrow().columns();
+            let grid_arc = self.grid.upgrade().expect("grid still exists");
+            let grid_guard = grid_arc.lock().expect("nobody panics holding mutex");
+            column = grid_guard.columns();
         }
         column
     }
@@ -52,8 +52,9 @@ impl<T> LocGenerator<T> {
         let line;
         {
             // TODO define behavior if grid is dropped
-            let grid_rc = self.grid.upgrade().expect("grid still exists");
-            line = grid_rc.borrow().lines();
+            let grid_arc = self.grid.upgrade().expect("grid still exists");
+            let grid_guard = grid_arc.lock().expect("nobody panics holding mutex");
+            line = grid_guard.lines();
         }
         line
     }
@@ -64,7 +65,7 @@ pub struct Loc<T> {
     spos: usize,
     column: usize,
     line: usize,
-    grid: Weak<RefCell<Grid<T>>>
+    grid: Weak<Mutex<Grid<T>>>
 }
 
 
@@ -91,12 +92,16 @@ impl<T> Loc<T> {
     
     pub fn is_close_to(&self, border: Border) -> bool {
         // TODO define behavior if grid is dropped
-        let grid_rc = self.grid.upgrade().expect("grid still exists");
+        let (columns, lines) = {
+            let grid_arc = self.grid.upgrade().expect("grid still exists");
+            let grid_guard = grid_arc.lock().expect("nobody panics holding mutex");
+            grid_guard.dim()
+        };
         match border {
             Border::Top => self.line == 0,
-            Border::Down => self.line + 1 >= grid_rc.borrow().lines(),
+            Border::Down => self.line + 1 >= lines,
             Border::Left => self.column == 0,
-            Border::Right => self.column + 1 >= grid_rc.borrow().columns(),
+            Border::Right => self.column + 1 >= columns,
         }
     }
 }
@@ -111,6 +116,7 @@ pub trait Localisable<T> {
 mod tests {
     use super::*;
     use maze::OrthoMaze;
+    use super::freewalk;
 
 
     const NB_COLUMNS : usize = 4;

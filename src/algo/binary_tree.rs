@@ -1,7 +1,6 @@
 use rand;
 use rand::Rng;
 
-use maze::OrthoMaze;
 use grid::{Way, Border};
 use algo::Execution;
 
@@ -41,6 +40,7 @@ impl BinaryTree {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use maze::OrthoMaze;
 
     
     const NB_COLUMNS : usize = 4;

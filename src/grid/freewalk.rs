@@ -70,8 +70,7 @@ impl<T> Localisable<T> for OrthoFreeWalk<T> {
 
 #[cfg(test)]
 mod tests {
-    use std::rc::Rc;
-    use std::cell::RefCell;
+    use std::sync::{Arc, Mutex};
 
     use super::*;
     use super::super::Grid;
@@ -91,7 +90,7 @@ mod tests {
     fn freewalking_at_origin_can_move_down() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let grid = Rc::new(RefCell::new(grid));
+        let grid = Arc::new(Mutex::new(grid));
         let lc = LocGenerator::new(&grid);
         let walker = OrthoFreeWalk::new(lc);
         assert!(walker.can_move(Way::Down));
@@ -102,7 +101,7 @@ mod tests {
     fn freewalking_at_origin_can_move_right() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let grid = Rc::new(RefCell::new(grid));
+        let grid = Arc::new(Mutex::new(grid));
         let lc = LocGenerator::new(&grid);
         let walker = OrthoFreeWalk::new(lc);
         assert!(walker.can_move(Way::Right));
@@ -113,7 +112,7 @@ mod tests {
     fn freewalking_at_origin_can_not_move_up() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let grid = Rc::new(RefCell::new(grid));
+        let grid = Arc::new(Mutex::new(grid));
         let lc = LocGenerator::new(&grid);
         let walker = OrthoFreeWalk::new(lc);
         assert!(!walker.can_move(Way::Up));
@@ -124,7 +123,7 @@ mod tests {
     fn freewalking_at_origin_can_not_move_left() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let grid = Rc::new(RefCell::new(grid));
+        let grid = Arc::new(Mutex::new(grid));
         let lc = LocGenerator::new(&grid);
         let walker = OrthoFreeWalk::new(lc);
         assert!(!walker.can_move(Way::Left));
@@ -135,7 +134,7 @@ mod tests {
     fn freewalking_moves_to_right() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let grid = Rc::new(RefCell::new(grid));
+        let grid = Arc::new(Mutex::new(grid));
         let lc = LocGenerator::new(&grid);
         let mut walker = OrthoFreeWalk::new(lc);
         assert_pos(&walker, &[0, 0]);
@@ -148,7 +147,7 @@ mod tests {
     fn freewalking_moves_to_down() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let grid = Rc::new(RefCell::new(grid));
+        let grid = Arc::new(Mutex::new(grid));
         let lc = LocGenerator::new(&grid);
         let mut walker = OrthoFreeWalk::new(lc);
         assert_pos(&walker, &[0, 0]);
@@ -161,7 +160,7 @@ mod tests {
     fn freewalking_moves_to_up() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let grid = Rc::new(RefCell::new(grid));
+        let grid = Arc::new(Mutex::new(grid));
         let lc = LocGenerator::new(&grid);
         let mut walker = OrthoFreeWalk::new(lc);
         walker.step_to(Way::Down);
@@ -175,7 +174,7 @@ mod tests {
     fn freewalking_moves_to_left() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let grid = Rc::new(RefCell::new(grid));
+        let grid = Arc::new(Mutex::new(grid));
         let lc = LocGenerator::new(&grid);
         let mut walker = OrthoFreeWalk::new(lc);
         walker.step_to(Way::Right);
@@ -189,7 +188,7 @@ mod tests {
     fn walker_is_localizable() {
         let init_value = 1;
         let grid = Grid::new_from_copy(NB_COLUMNS, NB_LINES, &init_value);
-        let grid = Rc::new(RefCell::new(grid));
+        let grid = Arc::new(Mutex::new(grid));
         let lc = LocGenerator::new(&grid);
         let walker = OrthoFreeWalk::new(lc);
         let _loc = walker.to_loc();

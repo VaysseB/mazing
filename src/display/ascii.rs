@@ -160,8 +160,11 @@ impl PlainAscii {
 
 
     pub fn draw(&self, maze: &OrthoMaze) -> Result<Vec<String>, ()> {
-        let nb_columns = maze.grid.borrow().columns();
-        let nb_lines = maze.grid.borrow().lines();
+        let (nb_columns, nb_lines) = {
+            let grid_guard = maze.grid.lock()
+                .expect("nobody panics holding mutex");
+            grid_guard.dim()
+        };
 
         let locgen = maze.loc_generator();
         let mut result = Vec::new();
@@ -182,7 +185,8 @@ impl PlainAscii {
             }
 
             result.push(vert_line.done());
-            result.push(hori_line.done());
+            if y + 1 < nb_lines { result.push(hori_line.done()); }
+            else { result.push(line_builder.horizontal_border(nb_columns)) }
         }
 
         Ok(result)

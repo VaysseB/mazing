@@ -1,4 +1,4 @@
-use super::{Loc, LocGenerator};
+use super::Loc;
 
 
 pub struct Grid<T> {
@@ -68,6 +68,11 @@ impl<T> Grid<T> {
     }
 
 
+    pub fn dim(&self) -> (usize, usize) {
+        (self.columns, self.lines)
+    }
+
+
     fn _storage_pos(&self, column: usize, line: usize) -> Option<usize> {
         if column < self.columns && line < self.lines {
             Some(column + self.columns * line)
@@ -127,12 +132,23 @@ impl<T> Grid<T> {
 }
 
 
+impl<T: Clone> Clone for Grid<T> {
+    fn clone(&self) -> Self {
+        Grid {
+            columns: self.columns,
+            lines: self.lines,
+            cells: self.cells.clone()
+        }
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
-    use std::rc::Rc;
-    use std::cell::RefCell;
+    use std::sync::{Arc, Mutex};
 
     use super::*;
+    use super::LocGenerator;
 
    
     const NB_COLUMNS : usize = 4;
@@ -235,7 +251,7 @@ mod tests {
     #[test]
     fn access_with_location_within_range() {
         let grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
-        let grid_rc = Rc::new(RefCell::new(grid));
+        let grid_rc = Arc::new(Mutex::new(grid));
         let locgen = LocGenerator::new(&grid_rc);
         let loc = locgen.create_from_coordinates(0, 0);
         assert_eq!(grid_rc.borrow().at_loc(&loc), &0);
@@ -246,7 +262,6 @@ mod tests {
     #[should_panic]
     fn panic_if_access_with_location_outside_range() {
         let grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
-        let grid_rc = Rc::new(RefCell::new(grid));
         let locgen = LocGenerator::new(&grid_rc);
         let loc = locgen.create_from_coordinates(NB_COLUMNS, NB_LINES);
         assert_eq!(grid_rc.borrow().at_loc(&loc), &0);
@@ -280,7 +295,7 @@ mod tests {
     #[test]
     fn try_access_with_location_within_range() {
         let grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
-        let grid_rc = Rc::new(RefCell::new(grid));
+        let grid_rc = Arc::new(Mutex::new(grid));
         let locgen = LocGenerator::new(&grid_rc);
         let loc = locgen.create_from_coordinates(0, 0);
         assert_eq!(grid_rc.borrow().try_at_loc(&loc), Some(&0));
@@ -290,7 +305,7 @@ mod tests {
     #[test]
     fn try_access_with_location_outside_range() {
         let grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
-        let grid_rc = Rc::new(RefCell::new(grid));
+        let grid_rc = Arc::new(Mutex::new(grid));
         let locgen = LocGenerator::new(&grid_rc);
         let loc = locgen.create_from_coordinates(NB_COLUMNS, NB_LINES);
         assert_eq!(grid_rc.borrow().try_at_loc(&loc), None);
@@ -328,7 +343,7 @@ mod tests {
     #[test]
     fn mutate_with_location_within_range() {
         let grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
-        let grid_rc = Rc::new(RefCell::new(grid));
+        let grid_rc = Arc::new(Mutex::new(grid));
         let locgen = LocGenerator::new(&grid_rc);
         let loc = locgen.create_from_coordinates(0, 0);
         assert_eq!(grid_rc.borrow().at_loc(&loc), &0);
@@ -341,7 +356,7 @@ mod tests {
     #[should_panic]
     fn panic_if_mutate_with_location_outside_range() {
         let grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
-        let grid_rc = Rc::new(RefCell::new(grid));
+        let grid_rc = Arc::new(Mutex::new(grid));
         let locgen = LocGenerator::new(&grid_rc);
         let loc = locgen.create_from_coordinates(NB_COLUMNS, NB_LINES);
         *grid_rc.borrow_mut().at_loc_mut(&loc) = 1;
@@ -377,7 +392,7 @@ mod tests {
     #[test]
     fn try_mutate_with_location_within_range() {
         let grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
-        let grid_rc = Rc::new(RefCell::new(grid));
+        let grid_rc = Arc::new(Mutex::new(grid));
         let locgen = LocGenerator::new(&grid_rc);
         let loc = locgen.create_from_coordinates(0, 0);
         assert_eq!(grid_rc.borrow().try_at_loc(&loc), Some(&0));
@@ -389,7 +404,7 @@ mod tests {
     #[test]
     fn try_mutate_with_location_outside_range() {
         let grid : Grid<usize> = Grid::new(NB_COLUMNS, NB_LINES);
-        let grid_rc = Rc::new(RefCell::new(grid));
+        let grid_rc = Arc::new(Mutex::new(grid));
         let locgen = LocGenerator::new(&grid_rc);
         let loc = locgen.create_from_coordinates(NB_COLUMNS, NB_LINES);
         assert_eq!(grid_rc.borrow().try_at_loc(&loc), None);

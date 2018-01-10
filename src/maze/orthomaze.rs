@@ -1,5 +1,4 @@
-use std::rc::Rc;
-use std::cell::RefCell;
+use std::sync::{Arc, Mutex};
 
 use grid::{Grid, Way, Border, Loc, LocGenerator, ZWalk, OrthoFreeWalk};
 
@@ -7,6 +6,7 @@ use grid::{Grid, Way, Border, Loc, LocGenerator, ZWalk, OrthoFreeWalk};
 pub type OrthoLoc = Loc<MazeCell>;
 
 
+#[derive(Clone)]
 pub struct MazeCell {
     down_gate_open: bool,
     right_gate_open: bool,
@@ -67,8 +67,9 @@ impl Gates {
 //-----------------------------------------------------------------------------
 
 
+#[derive(Clone)]
 pub struct OrthoMaze {
-    pub grid: Rc<RefCell<Grid<MazeCell>>>,
+    pub grid: Arc<Mutex<Grid<MazeCell>>>,
     _current: Option<usize>,
     _group: Vec<usize>
 }
@@ -76,7 +77,7 @@ pub struct OrthoMaze {
 
 impl OrthoMaze {
     pub fn new(w: usize, h: usize) -> OrthoMaze {
-        let grid = Rc::new(RefCell::new(Grid::new(w, h)));
+        let grid = Arc::new(Mutex::new(Grid::new(w, h)));
         OrthoMaze {
             grid,
             _current: None,
@@ -103,22 +104,20 @@ impl OrthoMaze {
     pub fn carve(&mut self, loc: &Loc<MazeCell>, gateway: &Way) 
         -> Result<(), String>
     {
+        let mut grid_guard = self.grid.lock().expect("nobody panics holding mutex");
+        let (columns, lines) = grid_guard.dim();
         let res = match gateway {
-            &Way::Down if loc.line() + 1 <= self.grid.borrow().lines() => 
-                self.grid.borrow_mut()
-                .try_at_loc_mut(&loc)
+            &Way::Down if loc.line() + 1 <= lines => 
+                grid_guard.try_at_loc_mut(&loc)
                 .map(|ocell| ocell.down_gate_open = true),
-            &Way::Right if loc.column() + 1 <= self.grid.borrow().columns() => 
-                self.grid.borrow_mut()
-                .try_at_loc_mut(&loc)
+            &Way::Right if loc.column() + 1 <= columns => 
+                grid_guard.try_at_loc_mut(&loc)
                 .map(|ocell| ocell.right_gate_open = true),
             &Way::Up if loc.line() >= 1 => 
-                self.grid.borrow_mut()
-                .try_at_mut(loc.column(), loc.line() - 1)
+                grid_guard.try_at_mut(loc.column(), loc.line() - 1)
                 .map(|ocell| ocell.down_gate_open = true),
             &Way::Left if loc.column() >= 1 => 
-                self.grid.borrow_mut()
-                .try_at_mut(loc.column() - 1, loc.line())
+                grid_guard.try_at_mut(loc.column() - 1, loc.line())
                 .map(|ocell| ocell.right_gate_open = true),
             _ => None
         };
@@ -129,22 +128,30 @@ impl OrthoMaze {
     pub fn gates_at(&self, loc: &Loc<MazeCell>) -> Gates {
         let mut gates = Gates{ bits: 0 };
         
-        self.grid.borrow().try_at_loc(loc).map(|ocell|
-            if ocell.down_gate_open {
-                gates.insert(Gates::DOWN);
-            } else if ocell.right_gate_open {
-                gates.insert(Gates::RIGHT);
-            });
+        {
+            let grid_guard = self.grid.lock()
+                .expect("nobody panics holding mutex");
+            grid_guard.try_at_loc(loc).map(|ocell|
+                if ocell.down_gate_open {
+                    gates.insert(Gates::DOWN);
+                } else if ocell.right_gate_open {
+                    gates.insert(Gates::RIGHT);
+                });
+        }
         
         if !loc.is_close_to(Border::Top) {
-            self.grid.borrow().try_at(loc.column(), loc.line() - 1)
+            let grid_guard = self.grid.lock()
+                .expect("nobody panics holding mutex");
+            grid_guard.try_at(loc.column(), loc.line() - 1)
                 .map(|ocell| if ocell.down_gate_open {
                     gates.insert(Gates::TOP);
                 });
         }
         
         if !loc.is_close_to(Border::Left) {
-            self.grid.borrow().try_at(loc.column() - 1, loc.line())
+            let grid_guard = self.grid.lock()
+                .expect("nobody panics holding mutex");
+            grid_guard.try_at(loc.column() - 1, loc.line())
                 .map(|ocell| if ocell.right_gate_open {
                     gates.insert(Gates::LEFT);
                 });
