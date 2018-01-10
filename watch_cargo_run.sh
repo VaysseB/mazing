@@ -1,13 +1,14 @@
+export RUSTFLAGS="$RUSTFLAGS -A unused_imports"
 
 function build {
     clear
-    cargo build 2>&1 | head -n 40
+    cargo build --frozen 2>&1 | head -n 40
     return "${PIPESTATUS[0]}"
 }
 
 function run {
     clear
-    cargo run
+    cargo run --frozen
 }
 
 function build_run {
