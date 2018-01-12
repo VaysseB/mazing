@@ -1,6 +1,7 @@
 use rand;
 use rand::Rng;
 
+
 use grid::{Way, Border};
 use algo::Execution;
 
